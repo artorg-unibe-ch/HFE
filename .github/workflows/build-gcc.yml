@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
+        name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       -
