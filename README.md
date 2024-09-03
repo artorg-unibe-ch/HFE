@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/787815968.svg)](https://zenodo.org/doi/10.5281/zenodo.13629159)
 
-[![Build Docker Container - GCC](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml)
+[![Build Docker Container - gcc](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml)
 [![Build Docker Container - ifort](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml)
 [![Documentation](https://github.com/artorg-unibe-ch/HFE/actions/workflows/docs.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/docs.yml)
 [![Run TODO to Issue](https://github.com/artorg-unibe-ch/HFE/actions/workflows/todo_to_issue.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/todo_to_issue.yml)
