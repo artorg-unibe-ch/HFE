@@ -1,4 +1,4 @@
-name: Build Docker Container
+name: Build Docker Container - gcc
 
 on:
   push:
