@@ -1,6 +1,8 @@
 # Homogenised Finite Elements (HFE) pipeline
 
 [![DOI](https://zenodo.org/badge/787815968.svg)](https://zenodo.org/doi/10.5281/zenodo.13629159)
+![Issue creation][todo_to_issue]
+![Python application][pyapp]
 
 
 👷🏼 Simone Poncioni <br> 🦴 Musculoskeletal Biomechanics Group<br> 🎓 ARTORG Center for Biomedical Engineering Research, University of Bern
