@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification
+          pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification SimpleITK hydra pyvista pandas psutil
       - name: Sphinx build
         run: |
           cd 02_CODE/src/docs/ && make clean && make html
