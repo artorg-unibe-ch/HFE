@@ -11,15 +11,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglu1-mesa
+
+      - name: Clone and install pyhexspline
+        run: |
+          git clone https://github.com/artorg-unibe-ch/spline_mesher.git
+          cd spline_mesher
+          pip install -e .
+
       - name: Install dependencies
         run: |
           pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification SimpleITK hydra-core pyvista pandas psutil scipy numba
+
       - name: Sphinx build
         run: |
           sphinx-build 02_CODE/src/docs/ 02_CODE/src/docs/_build
+
       - name: Create .nojekyll file
         run: |
           touch 02_CODE/src/docs/_build/.nojekyll
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
