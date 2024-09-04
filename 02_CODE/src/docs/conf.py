@@ -24,7 +24,6 @@ sys.path.insert(0, os.path.abspath("../hfe_abq"))
 sys.path.insert(0, os.path.abspath("../hfe_accurate"))
 sys.path.insert(0, os.path.abspath("../hfe_utils"))
 
-
 # -- Project information -----------------------------------------------------
 
 project = "homogenised-finite-elements"
