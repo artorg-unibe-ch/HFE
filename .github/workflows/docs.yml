@@ -21,7 +21,7 @@ jobs:
         run: |
           git clone https://github.com/artorg-unibe-ch/spline_mesher.git
           cd spline_mesher
-          pip install -e .
+          pip install --user -e .
 
       - name: Install dependencies
         run: |
