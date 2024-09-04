@@ -16,7 +16,7 @@ jobs:
           pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification SimpleITK hydra-core pyvista pandas psutil
       - name: Sphinx build
         run: |
-          cd 02_CODE/src/docs/ && make clean && make html
+          sphinx-build 02_CODE/src/docs/ 02_CODE/src/docs/_build
       - name: Create .nojekyll file
         run: |
           touch 02_CODE/src/docs/_build/.nojekyll
