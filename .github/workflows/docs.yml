@@ -11,7 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-      
+
+      - name: Set up Python virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -21,14 +27,16 @@ jobs:
         run: |
           git clone https://github.com/artorg-unibe-ch/spline_mesher.git
           cd spline_mesher
-          pip install --user -e .
+          ../venv/bin/pip install -e .
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
+          source venv/bin/activate
           pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification SimpleITK hydra-core pyvista pandas psutil scipy numba
 
       - name: Sphinx build
         run: |
+          source venv/bin/activate
           sphinx-build 02_CODE/src/docs/ 02_CODE/src/docs/_build
 
       - name: Create .nojekyll file
