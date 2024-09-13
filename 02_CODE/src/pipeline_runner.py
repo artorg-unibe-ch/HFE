@@ -52,6 +52,15 @@ with warnings.catch_warnings(record=True) as w:
 
 
 def standalone_execution_sequential(cfg: HFEConfig):
+    """
+    Executes the pipeline in a standalone, sequential manner.
+
+    Args:
+        cfg (HFEConfig): Configuration object containing all necessary settings.
+
+    Returns:
+        None
+    """
     start_full = time()
     time_dict = {}
     results_summary = {}

@@ -22,29 +22,19 @@ def surface_nets(
     target_reduction: float = 0.9,
 ):
     """
-    Applies the Surface Nets algorithm to a given vtkImageData object.
+    Applies the Surface Nets algorithm to a given vtkImageData object to generate a mesh.
 
-    Parameters:
-    imvtk (vtk.vtkImageData): The input image data.
-    output_mesh_type (str, optional): The type of mesh to output.
-        Can be either "quads" or "tri". Defaults to "tri".
-    output_style (str, optional): The style of the output.
-        Can be either "default" or "boundary". Defaults to "default".
-    smoothing (bool, optional): Whether to apply smoothing to the output.
-        Defaults to False.
-    smoothing_num_iterations (int, optional): The number of iterations
-        to perform if smoothing is enabled. Defaults to 50.
-    smoothing_relaxation_factor (float, optional):
-        The relaxation factor to use if smoothing is enabled. Defaults to 0.5.
-    smoothing_constraint_distance (float, optional):
-        The constraint distance to use if smoothing is enabled. Defaults to 1.
-
-    Raises:
-    ValueError: If an invalid output mesh type or output style is provided.
-    NotImplementedError: If the selected output style is not implemented.
+    Args:
+        imvtk (vtk.vtkImageData): The input image data.
+        output_mesh_type (str, optional): The type of mesh to output ("quads" or "tri"). Defaults to "tri".
+        output_style (str, optional): The style of the output ("default" or "boundary"). Defaults to "default".
+        smoothing (bool, optional): Whether to apply smoothing to the output. Defaults to False.
+        decimate (bool, optional): Whether to apply decimation to the output. Defaults to False.
+        smoothing_num_iterations (int, optional): The number of smoothing iterations. Defaults to 50.
+        target_reduction (float, optional): The target reduction for decimation. Defaults to 0.9.
 
     Returns:
-    pv.core.pointset.UnstructuredGrid: Mesh after applying Surface Nets.
+        pv.core.pointset.UnstructuredGrid: Mesh after applying Surface Nets.
     """
     TARGET_REDUCTION = target_reduction
 
@@ -56,24 +46,24 @@ def surface_nets(
     if num_labels is not None:
         surfnets.GenerateLabels(num_labels, 1, num_labels)
 
+    if output_mesh_type not in ["quads", "tri"]:
+        raise ValueError(
+            f'Invalid output mesh type "{output_mesh_type}", use "quads" or "tri"'
+        )
+
+    if output_style not in ["default", "boundary"]:
+        raise ValueError(
+            f'Invalid output style "{output_style}", use "default" or "boundary"'
+        )
+
     if output_mesh_type == "quads":
         surfnets.SetOutputMeshTypeToQuads()
     elif output_mesh_type == "tri":
         surfnets.SetOutputMeshTypeToTriangles()
-    else:
-        raise ValueError(
-            f'Invalid output mesh type "{output_mesh_type}", use "quads" or "tri"'
-        )
     if output_style == "default":
         surfnets.SetOutputStyleToDefault()
     elif output_style == "boundary":
         surfnets.SetOutputStyleToBoundary()
-    elif output_style == "selected":
-        raise NotImplementedError(f'Output style "{output_style}" is not implemented')
-    else:
-        raise ValueError(
-            f'Invalid output style "{output_style}", use "default" or "boundary"'
-        )
 
     surfnets.Update()
     mesh = pv.wrap(surfnets.GetOutput())

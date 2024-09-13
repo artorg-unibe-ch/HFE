@@ -27,19 +27,18 @@ ENV PATH="/opt/miniconda/bin:$PATH"
 RUN conda create -n hfe-essentials python=3.12
 SHELL ["conda", "run", "-n", "hfe-essentials", "/bin/bash", "-c"]
 # Copy hfe requirements.txt and install requirements
-COPY ./requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.text .
+RUN pip install --no-cache-dir -r requirements.text
 RUN pip install -U scikit-image
 RUN pip install imutils
 
 # Set GitHub username and personal access token
 ARG GITHUB_USERNAME
-ARG GITHUB_TOKEN
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-# Install the meshing package # TODO: reactivate when github action is cloning from public repo
-RUN git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/artorg-unibe-ch/spline_mesher.git ./pyhexspline/spline_mesher
+# Install the meshing package
+RUN git clone https://${GITHUB_USERNAME}:@github.com/artorg-unibe-ch/spline_mesher.git ./pyhexspline/spline_mesher
 WORKDIR ./pyhexspline/spline_mesher
 RUN pip install -e .
 

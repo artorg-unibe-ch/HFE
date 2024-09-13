@@ -162,7 +162,6 @@ def areadyadic_indices(voxel_indices: np.ndarray):
 
 
 @timeit
-# @njit()
 @njit(parallel=True)
 def areadyadic_grid(
     ad_indices: np.ndarray, areadyadic_product: np.ndarray, voxel_indices: np.ndarray
@@ -223,8 +222,18 @@ def standalone_testing_exec():
 def map_isosurface(
     CLOUD: np.ndarray, areadyadic_compartment: np.ndarray, DIMS: np.ndarray
 ):
+    """
+    Maps the isosurface of a point cloud to a grid.
+
+    Args:
+        CLOUD (np.ndarray): The point cloud to map.
+        areadyadic_compartment (np.ndarray): The areadyadic compartment data.
+        DIMS (np.ndarray): The dimensions of the voxel grid.
+
+    Returns:
+        np.ndarray: The areadyadic grid.
+    """
     RANGE_START, RANGE_END = _range(CLOUD)
-    # VOXEL_K = _subs(RANGE_START, RANGE_END) #? I might remove this function
 
     voxel_indices = index_cloud(CLOUD, RANGE_START, RANGE_END, DIMS)
 

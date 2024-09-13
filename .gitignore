@@ -21,8 +21,8 @@ outputs/
 04_SIMULATIONS/
 !04_SIMULATIONS/simulations_directory.text
 99_TEMP/
-QMSKI/DSC_PAPER/
-out/
+QMSKI/*
+out/*
 
 multirun/
 

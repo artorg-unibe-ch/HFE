@@ -2,11 +2,12 @@
 # @Author:  Simone Poncioni, MSB
 # @Date:    18.06.2024
 
-import numpy as np
 from pathlib import Path
-import SimpleITK as sitk
+
 import gmsh
+import numpy as np
 import pyvista as pv
+import SimpleITK as sitk
 
 
 # * Cortical volume of mask vs cortical volume of mesh
@@ -49,16 +50,6 @@ def difference_volume_percent(mhd_path: Path, mesh_path: Path):
     mesh_vol = calculate_mesh_volume(mesh_path)
     diff = (mesh_vol - mask_vol) / mask_vol * 100
     return diff
-
-
-"""
-def calc_diff_auto():
-    vol_path = Path("01_DATA/438_L_71_F/C0003104_CORTMASK.mhd")
-    mesh_path = Path("03_MESH/C0003104sweep_1/C0003104sweep_1.msh")
-    diff_test = difference_volume_percent(vol_path, mesh_path)
-    print(f"\n\nDifference in volume: {diff_test:.3f}%\n\n")
-"""
-# ---
 
 
 # * Trabecular bone volume of mask vs trabecular bone volume of mesh
@@ -133,39 +124,22 @@ def calculate_cortical_bone_volume(vtu_path: Path):
 
 
 def main():
-    """
-    # get all meshes in subdir:
-    mesh_dir = Path("03_MESH")
-    # for each subdir, get the mesh with suffix '.msh'
-    res_dict = {}
-    for subdir in mesh_dir.iterdir():
-        if subdir.is_dir():
-            for mesh in subdir.iterdir():
-                if mesh.suffix == ".msh":
-                    print(f"Processing {mesh}")
-                    vol = calculate_mesh_volume(mesh)
-                    res_dict[str(mesh.name).split("s")[0]] = vol
-    # save dict as csv
-    with open("05_SUMMARIES/REPRO/mesh_volumes.csv", "w") as f:
-        for key in res_dict.keys():
-            f.write("%s,%s\n" % (key, res_dict[key]))
-    """
-
     simdir = Path("04_SIMULATIONS/REPRO/IMAGES")
     # for each subdir, get the vtu with suffix '.vtu'
     res_dict = {}
     for vtu in simdir.rglob("*_with_data.vtu"):
         print(f"Processing {vtu}")
-        parent_dir = str(vtu.parent).split('/')[-1].split('_')[0]
+        parent_dir = str(vtu.parent).split("/")[-1].split("_")[0]
         # print(f'Parent directory:\t{parent_dir}')
         tb_bv = calculate_trabecular_bone_volume(vtu)
         ct_bv = calculate_cortical_bone_volume(vtu)
         res_dict[parent_dir] = tb_bv, ct_bv
-        
+
     with open("05_SUMMARIES/REPRO/mesh_bvtv_ctbv.csv", "w") as f:
         for key in res_dict.keys():
             f.write("%s, %s\n" % (key, res_dict[key]))
     print("Done.")
+
 
 if __name__ == "__main__":
     main()

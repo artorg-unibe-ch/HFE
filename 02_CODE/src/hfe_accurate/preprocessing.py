@@ -29,24 +29,31 @@ def calculate_bvtv(
     IMTYPE: str,
 ):
     """
-    Calculate BVTV and mask images
-    ------------------------------
-    Scaling, slope and intercept are printed out for review
-    If image is already in BMD units, Scaling, Slope and
-    Intercept are not applied. BVTVraw is scaled according to
-    Hosseini et al. 2017
-    (This scaling function could as well be defined externally).
+    Calculates BVTV and mask images.
 
-    Parameters
-    ----------
-    bone    bone results dictionary
-    config  configuration parameters dictionary
-    IMTYPE  string defining the type of image (BMD/NATIVE)
+    Args:
+        scaling (float): Scaling factor for the image.
+        slope (float): Slope used in the image.
+        intercept (float): Intercept used in the image.
+        BMD_array (numpy.ndarray): Array containing BMD values.
+        CORTMASK_array (numpy.ndarray): Array containing cortical mask values.
+        TRABMASK_array (numpy.ndarray): Array containing trabecular mask values.
+        cfg (dict): Configuration object containing image processing settings.
+        IMTYPE (str): String defining the type of image ("BMD" or "NATIVE").
 
-    Returns
-    -------
-    bone    bone results dictionary
+    Returns:
+        tuple: A tuple containing the following elements:
+            - BVTVscaled (numpy.ndarray): Scaled BVTV values.
+            - BMDscaled (numpy.ndarray): Scaled BMD values.
+            - BVTVraw (numpy.ndarray): Raw BVTV values.
+
+    This function performs the following operations:
+    1. Calculates BVTVraw based on the image type (BMD or NATIVE).
+    2. Applies BVTV scaling if specified in the configuration.
+    3. Creates a mask by combining cortical and trabecular masks.
+    4. Applies the mask to BVTVscaled, BMDscaled, and BVTVraw.
     """
+
     print("\n ... prepare mask and BVTV images")
     print("     -> Scaling   = ", scaling)
     print("     -> Slope     = ", slope)
@@ -78,6 +85,20 @@ def calculate_bvtv(
 
 @timeit
 def input_sanity_check(SEG_array, trabmask, cortmask, spacing, tolerance, dimZ):
+    """
+    Ensures the input data is in the correct format and initializes necessary variables.
+
+    Args:
+        SEG_array (numpy.ndarray): Image array of segmentation.
+        trabmask (numpy.ndarray): Binary trabecular mask image.
+        cortmask (numpy.ndarray): Binary cortical mask image.
+        spacing (list): List of spacing in 3D.
+        tolerance (float): Tolerance value for the triangulation process.
+        dimZ (float): Dimension in the Z direction.
+
+    Returns:
+        tuple: A tuple containing the formatted SEG array, trabmask, cortmask, spacing, tolerance, and dimZ.
+    """
     if not isinstance(SEG_array, vtk.vtkImageData):
         SEGim_vtk = numpy2vtk(SEG_array, spacing)
 
@@ -251,13 +272,13 @@ def compute_cell_area(cfg, vtkNormals, indices_cort, indices_trab):
 @timeit
 def get_cell_centers(vtk_output):
     """
-    This function finds the center of gravity of each cell in a vtk output object.
+    Finds the center of gravity of each cell in a vtk output object.
 
     Args:
-    - vtk_output: vtk output object
+        vtk_output (vtk.vtkPolyData): The vtk output object.
 
     Returns:
-    - cog_temp: numpy array containing the center of gravity of each cell
+        numpy.ndarray: Array containing the center of gravity of each cell.
     """
     # Find find Center of gravity of each cell
     filt = vtk.vtkCellCenters()
@@ -272,21 +293,19 @@ def get_cell_centers(vtk_output):
 @timeit
 def assign_vtk2cell(cfg, cog_temp, spacing, dimZ, tolerance, trabmask):
     """
-    Assigns each triangle of the mesh to either the trabecular or cortical mask
-    based on the position of its center of gravity.
+    Assigns each triangle of the mesh to either the trabecular or cortical mask based on its center of gravity.
 
     Args:
-        cog_temp (np.ndarray): Array of shape (nfacet, 3) containing the center of gravity coordinates
-        for each triangle.
-        spacing (np.ndarray): Array of shape (3,) containing the voxel spacing in x, y, and z directions.
-        dimZ (np.ndarray): Scalar value representing the maximum z-coordinate of the mesh.
-        tolerance (np.ndarray): Scalar value representing the tolerance for the cortical compartment.
-        trabmask (np.ndarray): Array containing the trabecular mask.
-        nfacet (int): Number of facets (triangles) in the mesh.
+        cfg (dict): Configuration object containing homogenization settings.
+        cog_temp (numpy.ndarray): Array containing the center of gravity coordinates for each triangle.
+        spacing (numpy.ndarray): Array containing the voxel spacing in x, y, and z directions.
+        dimZ (float): Maximum z-coordinate of the mesh.
+        tolerance (float): Tolerance for the cortical compartment.
+        trabmask (numpy.ndarray): Array containing the trabecular mask.
 
     Returns:
-        Tuple of four lists containing the center of gravity coordinates and indices for the triangles assigned to
-        the trabecular and cortical masks, respectively.
+        tuple: A tuple containing the center of gravity coordinates and indices for the triangles assigned to
+               the trabecular and cortical masks, respectively.
     """
     mask_cog1, mask_cog2, mask_cog3 = __mask_cogs__(cog_temp, spacing)
     mask_cog = np.array([mask_cog1, mask_cog2, mask_cog3], dtype=np.int32).transpose()
@@ -340,16 +359,13 @@ def get_area_dyadic(
     """
     Computes the area dyadic, which represents the multiplication of the area
     with the cross-product of the normals of each triangle.
-    These values can now be assigned to the elements according to the center
-    of gravity of the triangle.
-    All lists are sorted according to index (position in list is index
-    identifier for triangles).
 
     Args:
-    - area_cort (np.ndarray): An array of cortical area values.
-    - area_trab (np.ndarray): An array of trabecular area values.
-    - dyadic_cort (np.ndarray): An array of cortical dyadic product values.
-    - dyadic_trab (np.ndarray): An array of trabecular dyadic product values.
+        cfg (dict): Configuration object containing homogenization settings.
+        area_cort (numpy.ndarray): An array of cortical area values.
+        area_trab (numpy.ndarray): An array of trabecular area values.
+        dyadic_cort (list[numpy.ndarray]): A list of cortical dyadic product values.
+        dyadic_trab (list[numpy.ndarray]): A list of trabecular dyadic product values.
 
     Returns:
     - Tuple[np.ndarray, np.ndarray]: A tuple containing the computed cortical
@@ -373,8 +389,6 @@ def get_area_dyadic(
 def smooth_kernel(MSL: np.ndarray, ROI_kernel_size: int) -> np.ndarray:
     """
     Applies a smoothing kernel to a 3D numpy array.
-    POS, 25.07.2023
-    MSB, ARTORG Center for Biomedical Engineering Research, University of Bern
 
     Args:
         MSL (np.ndarray): A 3D numpy array representing the input data.
@@ -383,13 +397,9 @@ def smooth_kernel(MSL: np.ndarray, ROI_kernel_size: int) -> np.ndarray:
     Returns:
         np.ndarray: A 3D numpy array representing the smoothed data.
 
-    Raises:
-        None
-
     Examples:
         >>> data = np.random.rand(10, 10, 10)
         >>> smoothed_data = smooth_kernel(data, 3)
-
     """
     kernel = np.ones([ROI_kernel_size, ROI_kernel_size, ROI_kernel_size])
     kernel = kernel[:, :, :, None, None]
@@ -402,32 +412,25 @@ def smooth_kernel(MSL: np.ndarray, ROI_kernel_size: int) -> np.ndarray:
 @timeit
 def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     """
-    This function is used for evaluating MSL fabric tensors.
-    Fabric tensors are returned in two sets:
-    - cortical MSL: Return values for triangles with cog in cortical mask
-                    (add on: 'cort')
-    - trabecular MSL: Return values for triangles with cog in trabecular mask
-                    (add on: 'trab')
+    Evaluates MSL fabric tensors for cortical and trabecular regions by triangulating the surface.
 
-    Parameters
-    ----------
-    SEG_array           image array of segmentation [X, Y, Z]
-    cortmask            binary cortical mask image [X, Y, Z]
-    trabmask            binary trabecular mask image [X, Y, Z]
-    spacing             list of spacing in 3D [X, Y, Z]
-    tolerance           # TODO: add description of tolerance
+    Args:
+        cfg (dict): Configuration object containing homogenization settings.
+        SEG_array (numpy.ndarray): Image array of segmentation.
+        cortmask (numpy.ndarray): Binary cortical mask image.
+        trabmask (numpy.ndarray): Binary trabecular mask image.
+        spacing (list): List of spacing in 3D.
+        tolerance (float): Tolerance value for the triangulation process.
 
-    Returns
-    -------
-    cog_points_cort     center of gravity of all triangles in cortical phase
-    cog_points_trab     center of gravity of all triangles in trabecular phase
-    areadyadic_cort     area weighted diadic product of spanning
-                        triangle vectors of cortical phase
-    areadyadic_trab     area weighted diadic product of spanning
-                        triangle vectors of trabecular phase
-    nfacet_range        number of triangles in specific phase
-    indices_cort        indices of triangles in cortical phase
-    indices_trab        indices of triangles in trabecular phase
+    Returns:
+        tuple: A tuple containing the following elements:
+            - cog_points_cort (numpy.ndarray): Center of gravity of triangles in cortical phase.
+            - cog_points_trab (numpy.ndarray): Center of gravity of triangles in trabecular phase.
+            - areadyadic_cort (numpy.ndarray): Area-weighted dyadic product of cortical triangles.
+            - areadyadic_trab (numpy.ndarray): Area-weighted dyadic product of trabecular triangles.
+            - nfacet_range (numpy.ndarray): Number of triangles in specific phase.
+            - indices_cort (numpy.ndarray): Indices of triangles in cortical phase.
+            - indices_trab (numpy.ndarray): Indices of triangles in trabecular phase.
 
     Notes
     -----
@@ -435,7 +438,7 @@ def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     - Adaptation of assign_MSL_triangulation function to account
         for the transformation (M. Indermaur, 2023)
     - Improved memory and CPU time performance (S. Poncioni, 2023)
-    - Cortical compartment as orthotropic material, uses cortical mask to calculate (S. Poncioni, 2024)
+    - Cortical compartment as transverse isotropic material, uses cortical mask to calculate (S. Poncioni, 2024)
     """
     # TODO: mask SEG_vtk with size of trabmask (we don't calculate everything also for cortex)
     ORTHOTROPIC_CORTEX = cfg.homogenization.orthotropic_cortex
@@ -524,14 +527,17 @@ def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     )
 
 
-def compute_msl_spline(bone: dict, cfg):
+def compute_msl_spline(bone: dict, cfg: dict) -> dict:
     """
+    Computes the mean surface length (MSL) for a given bone image and configuration.
+
     Args:
-        bone (dict): _description_
-        config (dict): _description_
+        bone (dict): A dictionary containing bone data, including spacing, segmentation arrays, and masks.
+        cfg (dict): A configuration dictionary containing homogenization parameters.
 
     Returns:
-        dict: _description_
+        dict: The updated bone dictionary with computed MSL spline values.
+
     """
 
     # read config dict

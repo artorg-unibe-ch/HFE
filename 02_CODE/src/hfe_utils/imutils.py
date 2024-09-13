@@ -108,11 +108,9 @@ def save_images_with_colorbar(cfg, sample, bone):
     If the array is "BMD_array" or "SEG_array", it uses the provided function
     to save the image with a colorbar. For other arrays, it saves the image without a colorbar.
     """
-    # Write out test images to check quality
     impath = Path(cfg.paths.aimdir, cfg.simulations.folder_id[sample], "")
     Path(impath).mkdir(parents=True, exist_ok=True)
 
-    # Loop over the arrays and save images with colorbar
     for array_name in [
         "BMD_array",
         "SEG_array",
@@ -120,7 +118,6 @@ def save_images_with_colorbar(cfg, sample, bone):
         "CORTMASK_array",
     ]:
         array_data = bone[array_name][int(bone[array_name].shape[0] / 2), :, :]
-        # transpose the array to match the image orientation
         array_data = np.transpose(array_data, (1, 0))
         image_path = str(Path(impath / (array_name.upper().split("_")[0] + ".png")))
 
@@ -144,8 +141,32 @@ def get_AIM_ints(f):
 
 
 def AIMreader(fileINname, spacing):
-    """reads an AIM file and provides the corresponding vtk image
-    with spacing, calibration data and header"""
+    """
+    Reads an AIM file and provides the corresponding VTK image along with spacing, calibration data, and header information.
+
+    Args:
+        fileINname (str): The filename of the AIM file to be read.
+        spacing (numpy.ndarray): Initial spacing values for the image.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - imvtk (vtk.vtkImageData): The VTK image data.
+            - spacing (numpy.ndarray): The spacing between image slices.
+            - scaling (float or None): The scaling factor for the image, if available.
+            - slope (float or None): The slope used in the image, if available.
+            - intercept (float or None): The intercept used in the image, if available.
+            - header (list): The header information from the AIM file.
+
+    Raises:
+        SystemExit: If the AIM file format is not supported.
+
+    This function performs the following operations:
+    1. Reads the header of the AIM file to determine the format and version.
+    2. Extracts necessary parameters such as spacing, scaling, slope, and intercept from the header.
+    3. Calculates the spacing based on the original dimensions and scaling factor.
+    4. Reads the AIM file using VTK and sets the appropriate data type and spacing.
+    5. Returns the VTK image data along with the extracted parameters and header information.
+    """
     # read header
     print("     " + fileINname)
     with open(fileINname, "rb") as f:
@@ -259,38 +280,51 @@ def AIMreader(fileINname, spacing):
 
 def read_img_param(filenames):
     """
-    Read image pararmeters from AIM image header.
-    Input: AIM image (Scanco Medical)
-    Output: (bone dictionary)
-    - Spacing
-    - Scaling
-    - Slope
-    - Intercept
+    Reads image parameters from the AIM image header.
+
+    Args:
+        filenames (dict): Dictionary containing the filenames, including the key "RAWname" for the raw AIM image.
+
+    Returns:
+        spacing (np.ndarray(float)): The spacing between image slices.
+        scaling (float): The scaling factor for the image.
+        slope (float): The slope used in the image.
+        intercept (float): The intercept used in the image.
+
+    Raises:
+        Exception: If an error occurs while reading the AIM image.
     """
     print("\n ... read AIM files")
 
-    """
-    read image informations from raw image
-    (only for files processed in medtool
-    """
     try:
         _, spacing, scaling, slope, intercept, _ = AIMreader(
             filenames["RAWname"], np.array([0.0606997, 0.0606997, 0.0606997])
         )
     except Exception as e:
         logger.exception(f"An error occurred while using AIMreader: {e}")
+        raise
 
     return spacing, scaling, slope, intercept
 
 
 def read_aim(name, filenames, bone, lock):
     """
-    read AIM image
-    --------------
-    All necessary AIM files are imported and stored in bone dict
-    Input: name specifier, filenames dict, bone dict
-    Output: bone dict
-    - numpy array containing AIM image
+    Reads an AIM image and stores it in the bone dictionary.
+
+    Args:
+        name (str): Specifier for the type of image (e.g., "BMD", "SEG").
+        filenames (dict): Dictionary containing the filenames, including the key "<name>name" for the AIM image.
+        bone (dict): Dictionary to store the image data and related parameters.
+        lock (threading.Lock): Lock to ensure thread-safe operations on the bone dictionary.
+
+    Returns:
+        dict: Updated bone dictionary containing the numpy array of the AIM image.
+
+    This function performs the following operations:
+    1. Reads the AIM image using the AIMreader function.
+    2. Converts the AIM image to a numpy array.
+    3. Pads the image to avoid non-zero values at the boundary.
+    4. Updates the bone dictionary with the processed image array.
     """
 
     print("\n ... read file: " + name)
@@ -325,7 +359,6 @@ def read_aim(name, filenames, bone, lock):
         print("Removing 10 slices")
         IMG_pad = IMG_pad[5:-10, :, :]
         print(IMG_pad.GetSize())
-
 
     IMG_array = sitk.GetArrayFromImage(IMG_pad)
     IMG_array = np.flip(IMG_array, 1)
@@ -399,13 +432,25 @@ def __adjust__img_size__(image, coarsefactor, crop_z=1):
 
 def adjust_image_size(name, bone, cfg, croptype=CropType.crop):
     """
-    Adjust image size to current FEelement size,
-    that no layers of the image are removed, size in z direction has to fit.
-    If empty layers are added in this dimension,
-    this will create a weak layer at the bottom of the image.
-    Expansions in x and y dimension,
-    will probably not affect strength, but will lower stiffness.
+    Adjusts the image size to match the current finite element (FE) element size.
+
+    Args:
+        name (str): Specifier for the type of image (e.g., "BMD", "SEG").
+        bone (dict): Dictionary containing the image data and related parameters.
+        cfg (dict): Configuration object containing meshing settings.
+        croptype (CropType, optional): Type of cropping to apply. Defaults to CropType.crop.
+
+    Returns:
+        dict: Updated bone dictionary with adjusted image size and related parameters.
+
+    This function performs the following operations:
+    1. Retrieves the image array and spacing from the bone dictionary.
+    2. Calculates the coarsening factor based on the FE element size and CT voxel size.
+    3. Adjusts the image size for BMD image and Mask.
+    4. Handles specific adjustments for XCTI image resolution (82µm).
+    5. Updates the bone dictionary with the original and adjusted image arrays, FE element size, and coarsening factor.
     """
+
     logger.info(f"Adjust image size for {name}")
     # get bone values
     img_array = bone[name + "_array"]
@@ -418,7 +463,7 @@ def adjust_image_size(name, bone, cfg, croptype=CropType.crop):
     # Adjustment for BMD image and Mask
     img_array_adjusted = __adjust__img_size__(img_array, coarse_factor, CropType.crop)
 
-    # for XCTI added by MI
+    # for XCTI added by Michael Indermaur
     if spacing[0] == 0.082:
         height = img_array.shape[2] * spacing[0]
         elem_n = np.rint(height / cfg.mesher.element_size).astype(int)

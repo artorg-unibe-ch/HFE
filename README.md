@@ -1,6 +1,40 @@
-# Homogenised Finite Elements (HFE)
+# Homogenised Finite Elements (HFE) pipeline
 
-## Building Dependencies
+[![DOI](https://zenodo.org/badge/787815968.svg)](https://zenodo.org/doi/10.5281/zenodo.13629159)
+
+[![Build Docker Container - gcc](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml)
+[![Build Docker Container - ifort](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml)
+[![Documentation](https://github.com/artorg-unibe-ch/HFE/actions/workflows/docs.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/docs.yml)
+[![Run TODO to Issue](https://github.com/artorg-unibe-ch/HFE/actions/workflows/todo_to_issue.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/todo_to_issue.yml)
+
+
+👷🏼 Simone Poncioni <br> 🦴 Musculoskeletal Biomechanics Group<br> 🎓 ARTORG Center for Biomedical Engineering Research, University of Bern
+
+
+## 📝 Introduction
+
+<p style='text-align: justify;'> We present a robust and efficient standalone homogenised finite element pipeline from HR-pQCT clinical imaging data. Traditional voxel-based meshing techniques often struggle to accurately represent the complex geometry of cortical bone, leading to suboptimal mechanical simulations. To address this, our method leverages a smooth representation that significantly enhances the precision of cortical shell modeling, outperforming monophasic isotropic voxel-based meshes. By generating structured meshes, our approach ensures greater efficiency, reduced memory usage, and improved comparability across different patients or longitudinal studies. The algorithm integrates advanced image processing techniques, including contour extraction, BSpline smoothing, and mesh optimization, to produce high-quality meshes that accurately capture both cortical and trabecular compartments. </p>
+
+## 💡 Method
+
+![Graphical Abstract](02_CODE/docs/smooth_mesh_graph_abstract_v1.jpg)
+
+
+## 🔧 Installation
+
+This project uses Conda to manage its Python dependencies. To create a Conda environment with the required dependencies, follow these steps:
+
+1. **Install Conda**: If you haven't already, download and install Conda from the [official website](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+
+2. **Create a Conda Environment**: Run the following command to create a new Conda environment.
+
+```sh
+conda create --name hfe-essentials python=3.12
+conda activate hfe-essentials
+pip install -r requirements.txt
+```
+
+### Building Dependencies with Docker (including FORTRAN compiler)
 
 This project uses Docker to manage its dependencies. To build the Docker image, follow these steps:
 
@@ -18,7 +52,7 @@ cd 02_CODE
 docker build -t your_image_name -f Dockerfile.ubuntu24.04 .
 ```
 
-## Running the Docker Image
+### Running the Docker Image
 
 After building the Docker image, you can run it using the following command:
 
@@ -28,7 +62,7 @@ docker run -it your_image_name
 
 This will start a Docker container with the built image and open an interactive shell in the container. The Docker container has all the dependencies installed and the environment set up as specified in the Dockerfile.
 
-## Running the Project
+### Running the Project
 
 Once you're inside the Docker container, you can run the project. The exact command depends on how your project is structured, but it will generally look something like this:
 
@@ -40,7 +74,7 @@ cd 02_CODE
 python src/pipeline_runner.py
 ```
 
-## Building the Docker image in Apptainer
+### Building the Docker image in Apptainer
 
 When working on HPC, it might be necessary to run the container in Apptainer. You can pull the Docker image directly from Docker Hub:
 

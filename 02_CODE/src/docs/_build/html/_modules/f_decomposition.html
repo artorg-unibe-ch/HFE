@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>f_decomposition &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">f_decomposition</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for f_decomposition</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">vtk</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="read_vtu">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.read_vtu">[docs]</a>
+<span class="k">def</span> <span class="nf">read_vtu</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a .vtu file and returns the output of the vtkXMLUnstructuredGridReader.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filepath (str or pathlib.Path): The path to the .vtu file to read.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        vtk.vtkUnstructuredGrid: The output of the vtkXMLUnstructuredGridReader after reading the .vtu file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkXMLUnstructuredGridReader</span><span class="p">()</span>
+    <span class="n">file</span><span class="o">.</span><span class="n">SetFileName</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+    <span class="n">file</span><span class="o">.</span><span class="n">Update</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="decomposition">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.decomposition">[docs]</a>
+<span class="k">def</span> <span class="nf">decomposition</span><span class="p">(</span><span class="n">F</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a decomposition of the input matrix F into spherical compression and isovolumic deformation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        F (numpy.ndarray): A 3D numpy array with shape (3, 3, n), where n is the number of matrices to decompose.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing two 1D numpy arrays of length n. The first array represents the spherical</span>
+<span class="sd">        compression of each matrix in F, and the second array represents the isovolumic deformation of each matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">spherical_compression</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">isovolumic_deformation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">spherical_compression</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">F</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">spherical_compression</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">F_tilde</span> <span class="o">=</span> <span class="n">spherical_compression</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">F</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="n">isovolumic_deformation</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">F_tilde</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">isovolumic_deformation</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">spherical_compression</span><span class="p">,</span> <span class="n">isovolumic_deformation</span></div>
+
+
+
+<div class="viewcode-block" id="get_centroid_arrays">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.get_centroid_arrays">[docs]</a>
+<span class="k">def</span> <span class="nf">get_centroid_arrays</span><span class="p">(</span><span class="n">output_compression</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts centroid arrays from the cell data of the given output compression.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_compression (vtk.vtkMultiBlockDataSet): A VTK multi-block data set. The cell data of this</span>
+<span class="sd">        data set is expected to contain arrays with names that include the word &quot;Centroid&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A dictionary where keys are the names of the centroid arrays and values</span>
+<span class="sd">        are the corresponding vtkDataArray objects. Only arrays with names that include the word &quot;Centroid&quot;</span>
+<span class="sd">        are included in this dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">arrays</span> <span class="o">=</span> <span class="n">output_compression</span><span class="o">.</span><span class="n">GetCellData</span><span class="p">()</span>
+    <span class="n">centroid_arrays</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">arrays</span><span class="o">.</span><span class="n">GetArrayName</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">arrays</span><span class="o">.</span><span class="n">GetArray</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">GetNumberOfArrays</span><span class="p">())</span>
+        <span class="k">if</span> <span class="s2">&quot;Centroid&quot;</span> <span class="ow">in</span> <span class="n">arrays</span><span class="o">.</span><span class="n">GetArrayName</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">centroid_arrays</span></div>
+
+
+
+<div class="viewcode-block" id="get_F_matrix">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.get_F_matrix">[docs]</a>
+<span class="k">def</span> <span class="nf">get_F_matrix</span><span class="p">(</span><span class="n">centroid_arrays</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function takes a dictionary of centroid arrays and constructs a 3x3 matrix F.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        centroid_arrays (dict): A dictionary where keys are strings of the form &quot;SDV_Fij_Centroid&quot;</span>
+<span class="sd">        and values are numpy arrays representing centroids. &#39;i&#39; and &#39;j&#39; in the key represent the</span>
+<span class="sd">        row and column indices (ranging from 1 to 3) of the F matrix respectively.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        F (numpy.ndarray): A 3x3 matrix constructed from the centroid arrays. The shape of F is (3, 3, -1),</span>
+<span class="sd">        where -1 implies that the size of the last dimension is inferred so that the total size remains constant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">F11</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F11_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F12</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F12_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F13</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F13_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F21</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F21_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F22</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F22_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F23</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F23_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F31</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F31_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F32</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F32_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F33</span> <span class="o">=</span> <span class="n">centroid_arrays</span><span class="p">[</span><span class="s2">&quot;SDV_F33_Centroid&quot;</span><span class="p">]</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">F11</span><span class="p">,</span> <span class="n">F12</span><span class="p">,</span> <span class="n">F13</span><span class="p">,</span> <span class="n">F21</span><span class="p">,</span> <span class="n">F22</span><span class="p">,</span> <span class="n">F23</span><span class="p">,</span> <span class="n">F31</span><span class="p">,</span> <span class="n">F32</span><span class="p">,</span> <span class="n">F33</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">F</span></div>
+
+
+
+<div class="viewcode-block" id="add_data_to_vtu">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.add_data_to_vtu">[docs]</a>
+<span class="k">def</span> <span class="nf">add_data_to_vtu</span><span class="p">(</span>
+    <span class="n">output_compression</span><span class="p">,</span>
+    <span class="n">spherical_compression</span><span class="p">,</span>
+    <span class="n">isovolumic_deformation</span><span class="p">,</span>
+    <span class="n">output_filepath</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds spherical compression and isovolumic deformation data to a vtkUnstructuredGrid object,</span>
+<span class="sd">    and writes it to a .vtu file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_compression (vtk.vtkUnstructuredGrid): The vtkUnstructuredGrid object to which the data will be added.</span>
+<span class="sd">        spherical_compression (list or numpy.ndarray): The spherical compression data to add.</span>
+<span class="sd">        isovolumic_deformation (list or numpy.ndarray): The isovolumic deformation data to add.</span>
+<span class="sd">        output_filepath (str or pathlib.Path): The path to the .vtu file to write.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create new arrays for spherical compression and isovolumic deformation</span>
+    <span class="n">spherical_compression_array</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkFloatArray</span><span class="p">()</span>
+    <span class="n">spherical_compression_array</span><span class="o">.</span><span class="n">SetName</span><span class="p">(</span><span class="s2">&quot;SphericalCompression&quot;</span><span class="p">)</span>
+    <span class="n">isovolumic_deformation_array</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkFloatArray</span><span class="p">()</span>
+    <span class="n">isovolumic_deformation_array</span><span class="o">.</span><span class="n">SetName</span><span class="p">(</span><span class="s2">&quot;IsovolumicDeformation&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Set the values of the arrays</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spherical_compression</span><span class="p">)):</span>
+        <span class="n">spherical_compression_array</span><span class="o">.</span><span class="n">InsertNextValue</span><span class="p">(</span><span class="n">spherical_compression</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">isovolumic_deformation_array</span><span class="o">.</span><span class="n">InsertNextValue</span><span class="p">(</span><span class="n">isovolumic_deformation</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">output_compression</span><span class="o">.</span><span class="n">GetCellData</span><span class="p">()</span><span class="o">.</span><span class="n">AddArray</span><span class="p">(</span><span class="n">spherical_compression_array</span><span class="p">)</span>
+    <span class="n">output_compression</span><span class="o">.</span><span class="n">GetCellData</span><span class="p">()</span><span class="o">.</span><span class="n">AddArray</span><span class="p">(</span><span class="n">isovolumic_deformation_array</span><span class="p">)</span>
+
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkXMLUnstructuredGridWriter</span><span class="p">()</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">SetFileName</span><span class="p">(</span><span class="n">output_filepath</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">SetInputData</span><span class="p">(</span><span class="n">output_compression</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">Write</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="decomposition_to_vtu">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.decomposition_to_vtu">[docs]</a>
+<span class="k">def</span> <span class="nf">decomposition_to_vtu</span><span class="p">(</span><span class="n">input_filepath</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading </span><span class="si">{</span><span class="n">input_filepath</span><span class="si">}</span><span class="s2"> ...&quot;</span><span class="p">)</span>
+    <span class="n">output_compression</span> <span class="o">=</span> <span class="n">read_vtu</span><span class="p">(</span><span class="n">input_filepath</span><span class="p">)</span>
+    <span class="n">centroid_arrays</span> <span class="o">=</span> <span class="n">get_centroid_arrays</span><span class="p">(</span><span class="n">output_compression</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">centroid_arrays</span><span class="p">)</span><span class="si">}</span><span class="s2"> arrays from the vtu file&quot;</span><span class="p">)</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">get_F_matrix</span><span class="p">(</span><span class="n">centroid_arrays</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted F matrix with shape </span><span class="si">{</span><span class="n">F</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">spherical_compression</span><span class="p">,</span> <span class="n">isovolumic_deformation</span> <span class="o">=</span> <span class="n">decomposition</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+
+    <span class="n">output_filepath</span> <span class="o">=</span> <span class="n">input_filepath</span><span class="o">.</span><span class="n">with_stem</span><span class="p">(</span><span class="n">input_filepath</span><span class="o">.</span><span class="n">stem</span> <span class="o">+</span> <span class="s2">&quot;_with_data&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving output to </span><span class="si">{</span><span class="n">output_filepath</span><span class="si">}</span><span class="s2"> ...&quot;</span><span class="p">)</span>
+    <span class="n">add_data_to_vtu</span><span class="p">(</span>
+        <span class="n">output_compression</span><span class="p">,</span>
+        <span class="n">spherical_compression</span><span class="p">,</span>
+        <span class="n">isovolumic_deformation</span><span class="p">,</span>
+        <span class="n">output_filepath</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../f_decomposition.html#f_decomposition.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">input_filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
+        <span class="s2">&quot;../../../04_SIMULATIONS/TIBIA/449_L_93_F/C0003094_04_bigdisp/Step-Compression_331.vtu&quot;</span>
+    <span class="p">)</span>
+    <span class="n">decomposition_to_vtu</span><span class="p">(</span><span class="n">input_filepath</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

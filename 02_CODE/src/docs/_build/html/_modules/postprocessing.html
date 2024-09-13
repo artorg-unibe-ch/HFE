@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>postprocessing &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">postprocessing</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for postprocessing</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="kn">import</span> <span class="n">writer</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="remove_empty_entries_list">
+<a class="viewcode-back" href="../postprocessing.html#postprocessing.remove_empty_entries_list">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_empty_entries_list</span><span class="p">(</span><span class="n">listname</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="k">while</span> <span class="s2">&quot;&quot;</span> <span class="ow">in</span> <span class="n">listname</span><span class="p">:</span>
+        <span class="n">listname</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">listname</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">listname</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">listname</span></div>
+
+
+
+<div class="viewcode-block" id="datfilereader_psl">
+<a class="viewcode-back" href="../postprocessing.html#postprocessing.datfilereader_psl">[docs]</a>
+<span class="k">def</span> <span class="nf">datfilereader_psl</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">optim</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">loadcase</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function same as in  PSL_Fast, DO NOT CHANGE!</span>
+<span class="sd">    Reads forces and displacements from Abaqus .dat file and stores them in optim dictionary, as well as a</span>
+<span class="sd">    structured text file</span>
+<span class="sd">    @param config: configuration parameters dictionary</span>
+<span class="sd">    @param sample: sample number</span>
+<span class="sd">    @param optim: optimization dictionary for results</span>
+<span class="sd">    @param loadcase: load case string</span>
+<span class="sd">    @return: optim dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dat_filename</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">feadir</span>
+        <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+        <span class="o">+</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+        <span class="o">+</span> <span class="n">sample</span>
+        <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+        <span class="o">+</span> <span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;.dat&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">outfilename</span> <span class="o">=</span> <span class="n">dat_filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;.txt&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Read the .dat file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dat_filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">infile</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="c1"># Lists used</span>
+    <span class="n">ref_nodedata</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">force</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cforce</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Ref node outputs</span>
+    <span class="c1"># Displacement vector U</span>
+    <span class="n">U1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">U2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">U3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">UR1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">UR2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">UR3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="c1"># Rectionforce vector R</span>
+    <span class="n">RF1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RF2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RF3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="c1"># Rectionforce vector R</span>
+    <span class="n">RF1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RF2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RF3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM1</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM2</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">RM3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;U3&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># value of increment</span>
+            <span class="c1"># Split U and R lines</span>
+            <span class="n">member1</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>  <span class="c1"># value of U3</span>
+            <span class="n">member2</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">12</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>  <span class="c1"># value of RF3</span>
+            <span class="n">member3</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">21</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>  <span class="c1"># value of CF3</span>
+
+            <span class="c1"># Extract different U components</span>
+            <span class="n">member1_red</span> <span class="o">=</span> <span class="n">remove_empty_entries_list</span><span class="p">(</span><span class="n">member1</span><span class="p">)</span>
+            <span class="n">U1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">U2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">U3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">UR1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">UR2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">UR3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member1_red</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Extract different R components</span>
+                <span class="n">member2_red</span> <span class="o">=</span> <span class="n">remove_empty_entries_list</span><span class="p">(</span><span class="n">member2</span><span class="p">)</span>
+                <span class="c1"># Clean member2_pass from &quot;+&quot; and replace with &quot;E+&quot;</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">member2_red</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">member2_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">member2_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;E+&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">member2_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">member2_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="s2">&quot;E+&quot;</span><span class="p">)</span>
+                <span class="n">RF1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">RF2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">RF3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">RM1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                <span class="n">RM2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                <span class="n">RM3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member2_red</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">RF1</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">RF2</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">RF3</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">RM1</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">RM2</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">RM3</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Extract different C components</span>
+                <span class="n">member3_red</span> <span class="o">=</span> <span class="n">remove_empty_entries_list</span><span class="p">(</span><span class="n">member3</span><span class="p">)</span>
+                <span class="c1"># Clean member2_pass from &quot;+&quot; and replace with &quot;E+&quot;</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">member3_red</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">member3_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">member3_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;E+&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">member3_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">member3_red</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="s2">&quot;E+&quot;</span><span class="p">)</span>
+                <span class="n">CF1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">CF2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">CF3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">CM1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                <span class="n">CM2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                <span class="n">CM3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">member3_red</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">CF1</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">CF2</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">CF3</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">CM1</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">CM2</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">CM3</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="n">disp</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">U1</span><span class="p">,</span> <span class="n">U2</span><span class="p">,</span> <span class="n">U3</span><span class="p">,</span> <span class="n">UR1</span><span class="p">,</span> <span class="n">UR2</span><span class="p">,</span> <span class="n">UR3</span><span class="p">])</span>
+            <span class="n">force</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">RF1</span><span class="p">,</span> <span class="n">RF2</span><span class="p">,</span> <span class="n">RF3</span><span class="p">,</span> <span class="n">RM1</span><span class="p">,</span> <span class="n">RM2</span><span class="p">,</span> <span class="n">RM3</span><span class="p">])</span>
+            <span class="n">cforce</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">CF1</span><span class="p">,</span> <span class="n">CF2</span><span class="p">,</span> <span class="n">CF3</span><span class="p">,</span> <span class="n">CM1</span><span class="p">,</span> <span class="n">CM2</span><span class="p">,</span> <span class="n">CM3</span><span class="p">])</span>
+
+            <span class="n">ref_nodedata</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">U1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">U2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">U3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UR1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UR2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">UR3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RF1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RF2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RF3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RM1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RM2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">RM3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CF1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CF2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CF3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CM1</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CM2</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">CM3</span><span class="p">)</span>
+            <span class="p">)</span>
+    <span class="c1"># Create the output files</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfilename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">*********************************************************</span>
+<span class="sd">* Displacement and reaction force of the reference node *</span>
+<span class="sd">*                 Denis SCHENK 2011                  *</span>
+<span class="sd">*********************************************************</span>
+<span class="sd">inc U1 U2 U3 UR1 UR2 UR3 RF1 RF2 RF3 RM1 RM2 RM3 CF1 CF2 CF3 CM1 CM2 CM3</span>
+<span class="sd">0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0</span>
+<span class="sd">&quot;&quot;&quot;</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_nodedata</span><span class="p">)):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ref_nodedata</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">]</span> <span class="o">=</span> <span class="n">disp</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;force_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">]</span> <span class="o">=</span> <span class="n">force</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;conc_force_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">]</span> <span class="o">=</span> <span class="n">cforce</span>
+
+    <span class="k">return</span> <span class="n">optim</span></div>
+
+
+
+<div class="viewcode-block" id="write_data_summary">
+<a class="viewcode-back" href="../postprocessing.html#postprocessing.write_data_summary">[docs]</a>
+<span class="k">def</span> <span class="nf">write_data_summary</span><span class="p">(</span>
+    <span class="n">cfg</span><span class="p">,</span>
+    <span class="n">optim</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mesh_parameters_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">DOFs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">time_sim</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function adapted for accurate no psl (only FZ_MAX load case)</span>
+<span class="sd">    Function that writes a summary csv file with all OPTIM parameters, for easy postprocessing in R studio</span>
+<span class="sd">    File is stored in summary folder.</span>
+<span class="sd">    @param config:</span>
+<span class="sd">    @param optim:</span>
+<span class="sd">    @return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Make summary file folder if not yet existing</span>
+    <span class="n">summary_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">sumdir</span><span class="p">)</span>
+    <span class="n">summary_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Directory &#39;</span><span class="si">{</span><span class="n">summary_path</span><span class="si">}</span><span class="s2">&#39; created&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create summary file if not yet existing</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">summary_path</span> <span class="o">/</span> <span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span> <span class="o">+</span> <span class="s2">&quot;_data_summary.csv&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">field_names_dict</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">sample</span><span class="p">,</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;max_force_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_at_max_force_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;stiffness_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TOT_mean_BMC_image&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TOT_simulation_BMC_FE_tissue_orig_ROI&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TOT_simulation_BMC_FE_tissue_ROI&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TOT_BMC_ratio_ROI&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_CORTorig&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_TRABorig&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_CORTscaled&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_TRABscaled&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BV_CORT_SEG&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BV_TRAB_SEG&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nel_CORT&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nel_TRAB&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nel_MIXED&quot;</span><span class="p">],</span>
+            <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;bvtv_scaling&quot;</span><span class="p">],</span>
+            <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;bvtv_slope&quot;</span><span class="p">],</span>
+            <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;bvtv_intercept&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTV_seg&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTVd_scaled&quot;</span><span class="p">],</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTVd_raw&quot;</span><span class="p">],</span>
+        <span class="p">]</span>
+
+        <span class="n">field_names_titles</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Sample&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;max_force_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;disp_at_max_force_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stiffness_1D_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC_tissue&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC_tissue_ROI_orig&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC_tissue_ROI_corrected&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC_ratio_corrected&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_tissue_BMD_CORT_orig&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_tissue_BMD_TRAB_orig&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_tissue_BMD_CORT_scaled&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_tissue_BMD_TRAB_scaled&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BV_CORT_SEG&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BV_TRAB_SEG&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;nel_CORT&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;nel_TRAB&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;nel_MIXED&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Hosseini_scaling&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;manual_scaling_slope&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;manual_scaling_intercept&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_BVTV_seg&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_BVTVd_scaled&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mean_BVTVd_raw&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="c1"># field_names_dict = [</span>
+        <span class="c1">#     sample,</span>
+        <span class="c1">#     optim[&quot;max_force_FZ_MAX&quot;],</span>
+        <span class="c1">#     optim[&quot;disp_at_max_force_FZ_MAX&quot;],</span>
+        <span class="c1">#     optim[&quot;stiffness_FZ_MAX&quot;],</span>
+        <span class="c1"># ]</span>
+
+        <span class="c1"># field_names_titles = [</span>
+        <span class="c1">#     &quot;Sample&quot;,</span>
+        <span class="c1">#     &quot;max_force_FZ_MAX&quot;,</span>
+        <span class="c1">#     &quot;disp_at_max_force_FZ_MAX&quot;,</span>
+        <span class="c1">#     &quot;stiffness_1D_FZ_MAX&quot;,</span>
+        <span class="c1"># ]</span>
+
+        <span class="n">field_names_dict</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">sample</span><span class="p">,</span>
+            <span class="n">DOFs</span><span class="p">,</span>
+            <span class="n">time_sim</span><span class="p">,</span>
+            <span class="n">mesh_parameters_dict</span><span class="p">[</span><span class="s2">&quot;n_elms_longitudinal&quot;</span><span class="p">],</span>
+            <span class="n">mesh_parameters_dict</span><span class="p">[</span><span class="s2">&quot;n_elms_transverse_trab&quot;</span><span class="p">],</span>
+            <span class="n">mesh_parameters_dict</span><span class="p">[</span><span class="s2">&quot;n_elms_transverse_cort&quot;</span><span class="p">],</span>
+            <span class="n">mesh_parameters_dict</span><span class="p">[</span><span class="s2">&quot;n_elms_radial&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;max_force_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_at_max_force_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;stiffness_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;yield_force_FZ_MAX&quot;</span><span class="p">],</span>
+            <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;yield_disp_FZ_MAX&quot;</span><span class="p">],</span>
+        <span class="p">]</span>
+
+        <span class="n">field_names_titles</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Sample&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DOFs&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;simulation_time&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_elms_longitudinal&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_elms_transverse_trab&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_elms_transverse_cort&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_elms_radial&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;max_force_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;disp_at_max_force_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stiffness_1D_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;yield_force_FZ_MAX&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;yield_disp_FZ_MAX&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">append_list_as_row</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">list_of_elem</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;a+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">write_obj</span><span class="p">:</span>
+            <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">(</span><span class="n">write_obj</span><span class="p">)</span>
+            <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">list_of_elem</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">append_list_as_row</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">field_names_dict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;a+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">field_names_titles</span><span class="p">)</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">append_list_as_row</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">field_names_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

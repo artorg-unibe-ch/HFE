@@ -314,15 +314,6 @@ def __get_masks__(
     seg_array,
     mask_array,
 ):
-    # Cut out ROI from image array
-    """
-    # ! RuntimeWarning occurs here !
-    /home/simoneponcioni/anaconda3/envs/hfe-accurate/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3474: RuntimeWarning:
-        Mean of empty slice.
-    /home/simoneponcioni/anaconda3/envs/hfe-accurate/lib/python3.9/site-packages/numpy/core/_methods.py:189: RuntimeWarning:
-        invalid value encountered in double_scalars
-    # TODO: write type hints
-    """
     x, y, z = cog / spacing
     VOI = VOI_mm / spacing[0]
     semisizes_s = (float(VOI / 2),) * 3
@@ -449,6 +440,7 @@ def __get_fe_dims__(img_shape: tuple, FEelSize: float, Spacing: float):
 def getClosestPhysPoint(centroids_mesh, phys_points):
     """
     Finds the closest physical point to each centroid in the cortical mesh.
+    You can then mask the physical points with this array to get the closest physical point for each centroid
 
     Args:
     - centroids_mesh (numpy.ndarray): array of centroids of each element in the cortical mesh, in millimeters (m, 3)
@@ -457,7 +449,7 @@ def getClosestPhysPoint(centroids_mesh, phys_points):
     Returns:
     - distances (numpy.ndarray): array of distances between each centroid and its closest physical point
     - indices (numpy.ndarray): array of indices of the closest physical point for each centroid
-        -> you can then mask the physical points with this array to get the closest physical point for each centroid
+
     """
     kdTree = KDTree(phys_points, leafsize=100, copy_data=True, balanced_tree=True)
     distances, indices = kdTree.query(centroids_mesh, k=1)

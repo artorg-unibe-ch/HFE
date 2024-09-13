@@ -11,7 +11,6 @@ Date: March 2024
 
 import gc
 import logging
-import pickle
 import threading
 from pathlib import Path
 from time import sleep
@@ -38,62 +37,27 @@ except ImportError:
     pass
 
 
-def _helper_store_bone_dict(bone: dict, basepath: Path, _mesh: str):
-    """
-    Helper function to store the bone dict as a pickle file
-    Can be removed after testing (POS, 02.08.2023)
-    """
-    BVTVscaled = bone["BVTVscaled"]
-    with open(basepath / f"{_mesh}_BVTVscaled.pkl", "wb") as a:
-        pickle.dump(BVTVscaled, a)
-
-    BMDscaled = bone["BMDscaled"]
-    with open(basepath / f"{_mesh}_BMDscaled.pkl", "wb") as b:
-        pickle.dump(BMDscaled, b)
-
-    CORTMASK_array = bone["CORTMASK_array"]
-    with open(basepath / f"{_mesh}_CORTMASK_array.pkl", "wb") as c:
-        pickle.dump(CORTMASK_array, c)
-
-    TRABMASK_array = bone["TRABMASK_array"]
-    with open(basepath / f"{_mesh}_TRABMASK_array.pkl", "wb") as d:
-        pickle.dump(TRABMASK_array, d)
-
-    SEG_array = bone["SEG_array"]
-    with open(basepath / f"{_mesh}_SEG_array.pkl", "wb") as e:
-        pickle.dump(SEG_array, e)
-
-    FEelSize = bone["FEelSize"]
-    with open(basepath / f"{_mesh}_FEelSize.pkl", "wb") as f:
-        pickle.dump(FEelSize, f)
-
-    Spacing = bone["Spacing"]
-    with open(basepath / f"{_mesh}_Spacing.pkl", "wb") as g:
-        pickle.dump(Spacing, g)
-
-    elems = bone["elms"]
-    with open(basepath / f"{_mesh}_elems.pkl", "wb") as h:
-        pickle.dump(elems, h)
-
-    nodes = bone["nodes"]
-    with open(basepath / f"{_mesh}_nodes.pkl", "wb") as i:
-        pickle.dump(nodes, i)
-
-    MSL_kernel_list_cort = bone["MSL_kernel_list_cort"]
-    with open(basepath / f"{_mesh}_MSL_kernel_list_cort.pkl", "wb") as k:
-        pickle.dump(MSL_kernel_list_cort, k)
-
-    MSL_kernel_list_trab = bone["MSL_kernel_list_trab"]
-    with open(basepath / f"{_mesh}_MSL_kernel_list_trab.pkl", "wb") as file_handler:
-        pickle.dump(MSL_kernel_list_trab, file_handler)
-
-    MESH = bone["MESH"]
-    with open(basepath / f"{_mesh}_MESH.pkl", "wb") as m:
-        pickle.dump(MESH, m)
-    return None
-
-
 def save_image_with_colorbar(data, output_path):
+    """
+    Saves an image with a colorbar to the specified output path.
+
+    Args:
+        data (numpy.ndarray): The image data to be displayed.
+        output_path (str): The path where the image will be saved.
+
+    Returns:
+        None
+
+    This function performs the following operations:
+    1. Creates a new figure and axis.
+    2. Displays the image data using a viridis colormap.
+    3. Sets the title of the image based on the output path.
+    4. Adds a colorbar to the right of the image.
+    5. Adjusts the layout to be tight.
+    6. Saves the figure to the specified output path with a resolution of 300 dpi.
+    7. Clears the figure to free up memory.
+    """
+
     plt.figure()
     ax = plt.gca()
     im = ax.imshow(data, cmap="viridis")
@@ -112,17 +76,30 @@ def save_image_with_colorbar(data, output_path):
 
 def aim2fe_psl(cfg, sample):
     """
-    Wrapper that converts AIM image to Abaqus INP.
+    Converts AIM image to Abaqus INP file using the provided configuration.
 
     Args:
-        config (dict): dictionary of configuration parameters
-        sample (_type_): _description_
+        cfg (dict): Dictionary of configuration parameters.
+        sample (str): Sample identifier.
 
     Raises:
-        TypeError: _description_
+        TypeError: If there is an issue with the input types.
+        ValueError: If an unrecognized fabric or meshing type is encountered.
 
     Returns:
-        _type_: _description_
+        tuple: A tuple containing the bone dictionary and the path to the Abaqus INP file.
+
+    This function performs the following operations:
+    1. Sets filenames and reads image parameters.
+    2. Reads AIM images and image parameters, optionally using multithreading.
+    3. Adjusts image size if registration is enabled.
+    4. Saves images with colorbars.
+    5. Prepares material mapping by calculating BVTV and BMD values.
+    6. Generates a mesh if the meshing type is "spline".
+    7. Computes MSL kernel list based on the fabric type.
+    8. Maps materials to the mesh.
+    9. Computes and stores summary and performance variables.
+    10. Plots MSL fabric if the meshing type is "spline".
     """
 
     # For Hosseini Dataset, Image parameters are read from original aim, not from processed BMD file, as there
@@ -163,7 +140,7 @@ def aim2fe_psl(cfg, sample):
     else:
         image_list = ["BMD", "SEG"]
         for _, item in enumerate(image_list):
-            bone = io_utils.read_aim(item, filenames, bone)
+            bone = imutils.read_aim(item, filenames, bone, lock=None)
         bone = imutils.read_aim_mask_combined("MASK", filenames, bone)
 
     # image_list = ["BMD", "SEG", "CORTMASK", "TRABMASK"]
@@ -221,7 +198,7 @@ def aim2fe_psl(cfg, sample):
                 pass
 
         # append sample filename to config_mesh["img_settings"]
-        sample_n = str(sample) + f"sweep_{cfg.meshing_settings.sweep_factor}"
+        sample_n = str(sample)
         io_utils.hydra_update_cfg_key(cfg, "img_settings.img_basefilename", sample_n)
         cfg.img_settings.img_basefilename = sample_n
         mesh = HexMesh(
@@ -247,27 +224,24 @@ def aim2fe_psl(cfg, sample):
 
         bone["nodes"] = nodes
         bone["elms"] = elms
+        bone["nb_nodes"] = nb_nodes
         bone["degrees_of_freedom"] = len(nodes) * 6
         bone["elms_centroids_cort"] = centroids_cort
         bone["elms_centroids_trab"] = centroids_trab
         bone["elms_vol_cort"] = elm_vol_cort
         bone["elms_vol_trab"] = elm_vol_trab
+        bone["radius_roi_cort"] = radius_roi_cort
+        bone["radius_roi_trab"] = radius_roi_trab
         bone["bnds_bot"] = bnds_bot
         bone["bnds_top"] = bnds_top
         bone["reference_point_coord"] = reference_point_coord
 
-        """
-        # ! only for testing, remove later
-        # pickle centroids_cort and centroids_trab
-        with open(f"centroids_cort_{sample}.pkl", "wb") as f:
-            pickle.dump(centroids_cort, f)
-        with open(f"centroids_trab_{sample}.pkl", "wb") as f:
-            pickle.dump(centroids_trab, f)
-        """
-
         bone["elsets"] = []
         if "FEelSize" not in bone or bone["FEelSize"]:
-            bone["FEelSize"] = int(round(cfg.mesher.element_size / spacing[0])) * bone["Spacing"]
+            bone["FEelSize"] = (
+                int(round(cfg.mesher.element_size / spacing[0])) * bone["Spacing"]
+            )
+        # old voxel-based mesh settings
         CoarseFactor = bone["FEelSize"][0] / bone["Spacing"][0]
         bone["CoarseFactor"] = CoarseFactor
         BVTVscaled_shape = bone["BVTVscaled"].shape
@@ -288,11 +262,6 @@ def aim2fe_psl(cfg, sample):
         raise ValueError("Fabric type not recognised")
 
     if cfg.mesher.meshing == "spline":
-        # TODO: reactivate if you want pickled files (POS, 28.02.2024)
-        # mesh_type = cfg.mesher.meshing
-        # inp_filename = filenames["INPname"]
-        # basepath = Path(inp_filename).parent
-        # _helper_store_bone_dict(bone, basepath, _mesh=mesh_type)
         (
             bone,
             abq_dictionary,

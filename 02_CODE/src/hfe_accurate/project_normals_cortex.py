@@ -19,16 +19,19 @@ def clustered_point_normals(
     TRABmask_array = TRABmask_array[:, :, 10:-10]
 
     def __fill_mask__() -> np.ndarray:
+        """
+        Fills the mask by combining CORTmask_array and TRABmask_array.
+
+        Returns:
+            np.ndarray: The filled mask.
+        """
         mask = CORTmask_array + TRABmask_array
         cort_filled = np.where(mask > 0, 1, 0)
         return cort_filled
 
     def __get__normals__(surfnet_output: pv.PolyData):
         """
-        This function computes:
-         - The normals of a given PolyData object
-         - Normalizes them
-         - Returns the points and their corresponding normalized normals.
+        Computes and normalizes the normals of a given PolyData object.
 
         Args:
             surfnet_output (pv.PolyData): The PolyData object for which to compute and normalize the normals.
@@ -49,7 +52,7 @@ def clustered_point_normals(
 
     def __cluster_normals__(points: np.ndarray, point_normals_normalized: np.ndarray):
         """
-        This function clusters the normals of points in a 3D grid.
+        Clusters the normals of points in a 3D grid.
         It first normalizes and scales the points to the grid size.
         Then, for each point, it adds its corresponding normal to the sum of the normals
         at the grid position of the point and increments the count of vectors at that position.

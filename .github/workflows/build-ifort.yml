@@ -1,4 +1,4 @@
-name: Build Docker Container
+name: Build Docker Container - ifort
 
 on:
   push:
@@ -10,6 +10,9 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
+      -
+        name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -26,12 +29,11 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v5
         with:
-            context: "{{defaultContext}}:02_CODE"
+            context: "{{defaultContext}}:02_CODE/docker_apptainer_hpc"
             file: Dockerfile.ubuntu24.04.ifort
             push: true
             tags: ${{ secrets.DOCKERHUB_USERNAME }}/hfe_development_ifort:latest
             build-args: |
                 GITHUB_USERNAME=${{ secrets.USERNAME_ADMIN }}
-                GITHUB_TOKEN=${{ secrets.TOKEN_ADMIN }}
                 USER_UID=1000
                 USER_GID=1000

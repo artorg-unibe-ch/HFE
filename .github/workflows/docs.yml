@@ -1,0 +1,53 @@
+name: Documentation
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Set up Python virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglu1-mesa
+
+      - name: Clone and install pyhexspline
+        run: |
+          git clone https://github.com/artorg-unibe-ch/spline_mesher.git
+          cd spline_mesher
+          ../venv/bin/pip install -e .
+
+      - name: Install Python dependencies
+        run: |
+          source venv/bin/activate
+          pip install sphinx sphinx_rtd_theme myst_parser matplotlib numpy gmsh vtk coloredlogs fast_simplification SimpleITK hydra-core pyvista pandas psutil scipy numba
+
+      - name: Sphinx build
+        run: |
+          source venv/bin/activate
+          sphinx-build 02_CODE/src/docs/ 02_CODE/src/docs/_build
+
+      - name: Create .nojekyll file
+        run: |
+          touch 02_CODE/src/docs/_build/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: 02_CODE/src/docs/_build
+          force_orphan: true

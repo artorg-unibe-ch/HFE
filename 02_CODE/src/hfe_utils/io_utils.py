@@ -85,14 +85,15 @@ def set_filenames(cfg, sample, pipeline="fast", origaim_separate=True):
     Set filenames for each grayscale file.
     Filenames depend on pipeline (fast/accurate).
     Always:
-        - native image for header
-        - BMD or Native image croppped to ROI
+    - native image for header
+    - BMD or Native image croppped to ROI
     additional for fast pipeline:
-        - periosteal mask
+    - periosteal mask
     additional for accurate pipeline:
-        - trabecular mask
-        - cortical mask
-        - two-phase segmentation
+    - trabecular mask
+    - cortical mask
+    - two-phase segmentation
+
     """
 
     # Always, not depending on nphase
