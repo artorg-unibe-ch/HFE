@@ -1,5 +1,5 @@
 paths:
-  origaimdir: 00_ORIGAIM/NODARATIS/
+  origaimdir: 00_ORIGAIM/NODARATIS
   aimdir:  01_DATA/NODARATIS
   feadir:  04_SIMULATIONS/NODARATIS
   sumdir: 05_SUMMARIES/NODARATIS

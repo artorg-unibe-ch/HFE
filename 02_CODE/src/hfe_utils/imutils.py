@@ -11,6 +11,8 @@ from hfe_utils.io_utils import ext
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # type: ignore
 
+from io_utils import FileConfig
+
 # flake8: noqa: E501
 
 
@@ -277,8 +279,18 @@ def AIMreader(fileINname, spacing):
     imvtk = reader.GetOutput()
     return imvtk, spacing, scaling, slope, intercept, header
 
+def mhd_reader(filename):
+    imvtk = sitk.ReadImage(filename)
+    spacing = imvtk.GetSpacing()
+    scaling = None
+    slope = None
+    intercept = None
+    header = None
+    return imvtk, spacing, scaling, slope, intercept, header
 
-def read_img_param(filenames):
+
+
+def read_img_param(filenames: FileConfig):
     """
     Reads image parameters from the AIM image header.
 
@@ -296,13 +308,22 @@ def read_img_param(filenames):
     """
     print("\n ... read AIM files")
 
-    try:
-        _, spacing, scaling, slope, intercept, _ = AIMreader(
-            filenames["RAWname"], np.array([0.0606997, 0.0606997, 0.0606997])
-        )
-    except Exception as e:
-        logger.exception(f"An error occurred while using AIMreader: {e}")
-        raise
+    raw_filename = filenames.raw_name
+    
+    if raw_filename.suffix == 'AIM*':
+        try:
+            _, spacing, scaling, slope, intercept, _ = AIMreader(
+                raw_filename, np.array([0.0606997, 0.0606997, 0.0606997])
+            )
+        except Exception as e:
+            logger.exception(f"An error occurred while using AIMreader: {e}")
+            raise
+    if raw_filename.suffix in ('.mha', '.mhd'):
+        try:
+            _, spacing, scaling, slope, intercept, _ = mhd_reader(raw_filename)
+        except Exception as e:
+            logger.exception(f"An error occurred while using mhd_reader: {e}")
+            raise
 
     return spacing, scaling, slope, intercept
 

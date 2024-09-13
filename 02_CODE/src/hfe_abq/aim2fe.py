@@ -106,10 +106,12 @@ def aim2fe_psl(cfg, sample):
     # they were deleted by medtool pre-processing
     origaim_separate_bool = cfg.image_processing.origaim_separate
 
-    filenames = io_utils.set_filenames(
-        cfg, sample, pipeline="accurate", origaim_separate=origaim_separate_bool
-    )
+    # filenames = io_utils.set_filenames(
+    #     cfg, sample, pipeline="accurate", origaim_separate=origaim_separate_bool
+    # )
 
+    filenames = io_utils.FileConfig(cfg, sample, pipeline='accurate', origaim_separate=origaim_separate_bool)
+    filenames.set_filenames()
     print(yaml.dump(filenames, default_flow_style=False))
     io_utils.print_mem_usage()
 

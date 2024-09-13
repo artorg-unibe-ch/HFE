@@ -18,6 +18,8 @@ import scipy  # type: ignore
 from hfe_abq.write_abaqus import AbaqusWriter
 from scipy.spatial import KDTree  # type: ignore
 
+from ..hfe_utils.io_utils import FileConfig
+
 LOGGING_NAME = "HFE-ACCURATE"
 logger = logging.getLogger(LOGGING_NAME)
 logger.setLevel(logging.INFO)
@@ -669,7 +671,7 @@ def __compute_eval_evect__(MSL_kernel_list, elms, BVseg, projection=True):
 def material_mapping_spline(
     bone: dict,
     cfg,
-    filenames: dict,
+    filenames: FileConfig,
 ):
     """
     Material Mapping, including PSL ghost padding layers as copy of most distal and proximal layers
@@ -941,7 +943,7 @@ def material_mapping_spline(
     inp_path = abq.abaqus_writer(_ver)
 
     logger.info("Writing vtk maps of fabric for visualization:")
-    utils.fab2vtk_fromdict(filenames["VTKname"], abq_dictionary)
+    utils.fab2vtk_fromdict(filenames.vtk_name, abq_dictionary)
     logger.info("Writing vtk maps of fabric for visualization: Done")
     # extend m with cort and trab
     m = np.append(m_cort, m_trab)
