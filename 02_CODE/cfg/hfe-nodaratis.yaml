@@ -1,0 +1,82 @@
+defaults:
+  - simulations-nodaratis
+  - paths-nodaratis
+  - socket
+  - mesh
+  - _self_
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      simulations.grayscale_filenames: C0000000
+
+
+mesher:
+  meshing: spline                   # or 'full-block'
+  element_size: 1.2747              # singlestack 8 elements 21 coarsening factor (if you enlarge the elementsize you have to change the radius of the BVTVcort)
+  air_elements: False               # True #if you want keep the elements to have a fullbock mesh in x-y direction 
+
+image_processing:
+  origaim_separate: False           # For Hosseini Dataset, Image parameters are read from original aim, not from processed BMD file, as there they were deleted by medtool pre-processing
+  mask_separate: True               # Standard evaluation gives two separate mask file (CORTMASK and TRABMASK), False if one maskfile with two different labels
+  imtype: BMD                       # NATIVE or BMD
+  bvtv_scaling: 1                   # 0: no scaling, 1: Scaling of BVTV 61um to BVTV 11.4um [Hosseini2017]
+  bvtv_slope: 0.963                 # bvtv intercept, added to each image voxel
+  bvtv_intercept: 0.03814           # bvtv intercept, added to each image voxel
+  BVTVd_comparison: False            # runs the comparison in imutils.compute_bvtv_d_seg()
+  BVTVd_as_BVTV: False              # True = BVTVd as BVTV, False= SEG as BVTV
+  SEG_correction: True              # if BVTVd_as_BVTV is False you can apply a seg correction
+  BMC_conservation: False           # [True/False] conservation of BMC
+
+homogenization:
+  fabric_type: local                # 'local' or 'global'
+  roi_bvtv_size: 5                  # MSL fabric (5 * 1mm edge length = 5mm)
+  STL_tolerance: 0.2
+  ROI_kernel_size_cort: 5
+  ROI_kernel_size_trab: 5
+  ROI_BVTV_size_cort: 1.3453        # Diameter of sphere with same volume as FEelement (3./4*(Volume_FEelement/math.pi))**(1./3)*2
+  ROI_BVTV_size_trab: 4.0           # Diameter of Arias Moreno et al. 2019
+  isotropic_cortex: False           # Cortex fabric isotropic, or projected on surface (requires preprocessing.compute_local_MSL(onlytrab=True))
+  orthotropic_cortex: True          # Cortex fabric orthotropic, managed in preprocessing.msl_triangulation()
+
+loadcase:
+  full_nonlinear_loadcases: False   # [True/False] compute non-linear loadcases [FX, FY, MX, MY, MZ]
+  BC_mode: 0                        # 0: all DOF fixed / 2: two in plane fixed / 5: all DOF free
+  control: displacement             # [force/displacement] describes the loading boundary conditions
+  start_step_size: 0.2
+  time_for_displacement: 1
+  min_step_size: 0.0000000001
+  max_step_size: 0.3
+  load_displacement: -0.35          # (mm)
+
+abaqus:
+  nlgeom: on                        # affects NLGEOM parameter in abaqus simulation (on/off)
+  abaqus_nprocs: 8                  # (-)
+  abaqus_memory: 6000               # (MB)
+  delete_odb: False                 # delete odb after retrieving data
+  max_increments: 1000              # int number [1-1000]
+  umat: 02_CODE/abq/UMAT_BIPHASIC.f
+
+
+strain_localisation:
+  strain_analysis: True             # True: if using strain localisation for the analysis
+
+
+registration:
+  registration: False               # True: if using registered data for longitudinal studies
+
+
+optimization:
+  fz_max_factor: 0.5
+  fx_fy_max_factor: 1.3
+  mx_my_max_factor: 1
+  mz_max_factor: 0.8
+
+
+old_cfg:
+  nphases: 1
+  ftype: iso
+  verification_file: 1
+  all_mask: True                    # if true, all elements containing part of a mask are converted to FE mesh, even if they don't hold BVTV. In this case, BVTV is set to 1%.
+  adjust_element_size: True         # adjust element_size that it fits into common region. eg. Common region has a size of 6.5 mm than it adjust the element size so that the 7 elements fits into the common region

@@ -15,6 +15,7 @@
 *.out
 *.tfm
 *.pdf
+*.mha
 
 outputs/
 04_SIMULATIONS/

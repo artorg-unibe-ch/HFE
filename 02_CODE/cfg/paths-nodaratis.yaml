@@ -1,0 +1,25 @@
+paths:
+  origaimdir: 00_ORIGAIM/NODARATIS/
+  aimdir:  01_DATA/NODARATIS
+  feadir:  04_SIMULATIONS/NODARATIS
+  sumdir: 05_SUMMARIES/NODARATIS
+  commondir: 01_DATA/BATCH/FEA_noReg/IMAGES/                        # if registration is true -> path to registration files
+  folder_bc_psl_loadcases: 02_CODE/abq/BC_PSL/
+  boundary_conditions: 02_CODE/abq/BC_PSL/boundary_conditions.inp
+  odb_OF_python_script: 02_CODE/src/hfe_abq/readODB_acc.py
+  odb_python_script: 02_CODE/src/hfe_abq/readODB_acc.py
+
+filenames:
+  filename_postfix_cort_mask: _V3_CORT_MASK.AIM
+  filename_postfix_trab_mask: _V3_TRAB_MASK.AIM
+  filename_postfix_mask: _MASK.AIM                                  # if mask separate == False, give this filename
+  filename_postfix_bmd: _V3_FINAL.AIM
+  filename_postfix_seg: _V3_SEG.AIM
+  filename_postfix_common: _common_region_MASK.mhd                  # if registration is true -> file of common region
+  filename_postfix_transform: _transformation.tfm                   # if registration is true -> transformation file
+
+version:
+  verification_files: 1
+  current_version: 01_test
+  site_bone: Radius                                                  # Radius / Tibia
+
