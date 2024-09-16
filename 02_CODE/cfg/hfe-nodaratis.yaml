@@ -9,7 +9,7 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      simulations.grayscale_filenames: C0000000
+      simulations.grayscale_filenames: C0003093
 
 
 mesher:

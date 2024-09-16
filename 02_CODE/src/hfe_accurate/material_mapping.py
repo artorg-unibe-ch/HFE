@@ -18,7 +18,7 @@ import scipy  # type: ignore
 from hfe_abq.write_abaqus import AbaqusWriter
 from scipy.spatial import KDTree  # type: ignore
 
-from ..hfe_utils.io_utils import FileConfig
+from hfe_utils.io_utils import FileConfig
 
 LOGGING_NAME = "HFE-ACCURATE"
 logger = logging.getLogger(LOGGING_NAME)

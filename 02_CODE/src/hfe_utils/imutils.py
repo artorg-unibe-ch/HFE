@@ -11,7 +11,7 @@ from hfe_utils.io_utils import ext
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy  # type: ignore
 
-from io_utils import FileConfig
+from hfe_utils.io_utils import FileConfig
 
 # flake8: noqa: E501
 
@@ -279,16 +279,47 @@ def AIMreader(fileINname, spacing):
     imvtk = reader.GetOutput()
     return imvtk, spacing, scaling, slope, intercept, header
 
-def mhd_reader(filename):
-    imvtk = sitk.ReadImage(filename)
-    spacing = imvtk.GetSpacing()
+def mha_reader(filename):
+    imsitk = sitk.ReadImage(filename)
+    print(type(imsitk))
+    spacing = imsitk.GetSpacing()
     scaling = None
     slope = None
     intercept = None
     header = None
-    return imvtk, spacing, scaling, slope, intercept, header
+    return imsitk, spacing, scaling, slope, intercept, header
 
+def mha_header_reader(filename):
+    reader = sitk.ImageFileReader()
+    reader.SetFileName(filename)
+    reader.LoadPrivateTagsOn()
+    reader.ReadImageInformation()
 
+    # Extract metadata and replace _LINEBREAK_ with actual line breaks for SimpleITK compatibility
+    metadata = {}
+    for k in reader.GetMetaDataKeys():
+        v = reader.GetMetaData(k).replace('_LINEBREAK_', '\n')
+        metadata[k] = v
+        print("({0}) = = \"{1}\"".format(k, v))
+
+    # Extract Density: slope from the metadata
+    density_slope = None
+    density_intercept = None
+    mu_scaling = None
+    for _, value in metadata.items():
+        if 'Density: slope' in value or 'Density: intercept' in value or 'Mu_Scaling' in value:
+            lines = value.split('\n')
+            for line in lines:
+                if 'Density: slope' in line:
+                    density_slope = float(line.split()[-1])
+                elif 'Density: intercept' in line:
+                    density_intercept = float(line.split()[-1])
+                elif 'Mu_Scaling' in line:
+                    mu_scaling = int(line.split()[-1])
+
+    spacing = reader.GetSpacing()
+    
+    return spacing, mu_scaling, density_slope, density_intercept
 
 def read_img_param(filenames: FileConfig):
     """
@@ -306,10 +337,10 @@ def read_img_param(filenames: FileConfig):
     Raises:
         Exception: If an error occurs while reading the AIM image.
     """
-    print("\n ... read AIM files")
+    print("\n ... read images")
 
     raw_filename = filenames.raw_name
-    
+    print(f'raw_filename: {raw_filename}')
     if raw_filename.suffix == 'AIM*':
         try:
             _, spacing, scaling, slope, intercept, _ = AIMreader(
@@ -320,7 +351,7 @@ def read_img_param(filenames: FileConfig):
             raise
     if raw_filename.suffix in ('.mha', '.mhd'):
         try:
-            _, spacing, scaling, slope, intercept, _ = mhd_reader(raw_filename)
+            spacing, scaling, slope, intercept = mha_header_reader(raw_filename)
         except Exception as e:
             logger.exception(f"An error occurred while using mhd_reader: {e}")
             raise
@@ -328,7 +359,11 @@ def read_img_param(filenames: FileConfig):
     return spacing, scaling, slope, intercept
 
 
-def read_aim(name, filenames, bone, lock):
+def general_image_reader(filename):
+    return sitk.ReadImage(filename)
+
+
+def read_image(name, filenames, bone, lock):
     """
     Reads an AIM image and stores it in the bone dictionary.
 
@@ -351,11 +386,14 @@ def read_aim(name, filenames, bone, lock):
     print("\n ... read file: " + name)
 
     spacing = bone["Spacing"]
-    IMG_vtk = AIMreader(filenames[name + "name"], spacing)[0]
-    IMG_array = vtk2numpy(IMG_vtk)
+    if name.suffix == '*AIM*':
+        IMG_vtk = AIMreader(filenames[name + "name"], spacing)[0]
+        IMG_array = vtk2numpy(IMG_vtk)
+        IMG_sitk = sitk.GetImageFromArray(IMG_array)
+    else:
+        IMG_sitk = general_image_reader(filenames[name])
 
     # pad image to avoid having non-zero values at the boundary
-    IMG_sitk = sitk.GetImageFromArray(IMG_array)
     IMG_pad = pad_image(IMG_sitk, iso_pad_size=10)
     IMG_pad = sitk.Flip(IMG_pad, [True, False, False])
 
