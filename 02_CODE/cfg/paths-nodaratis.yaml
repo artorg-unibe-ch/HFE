@@ -10,11 +10,11 @@ paths:
   odb_python_script: 02_CODE/src/hfe_abq/readODB_acc.py
 
 filenames:
-  filename_postfix_cort_mask: _V3_CORT_MASK.mha
-  filename_postfix_trab_mask: _V3_TRAB_MASK.mha
+  filename_postfix_cort_mask: _CORT_MASK_UNCOMP.mha
+  filename_postfix_trab_mask: _TRAB_MASK_UNCOMP.mha
   filename_postfix_mask: _MASK.AIM                                  # if mask separate == False, give this filename
   filename_postfix_bmd: _UNCOMP.mha
-  filename_postfix_seg: _SEG.mha
+  filename_postfix_seg: _UNCOMP_SEG.mha
   filename_postfix_common: _common_region_MASK.mhd                  # if registration is true -> file of common region
   filename_postfix_transform: _transformation.tfm                   # if registration is true -> transformation file
 

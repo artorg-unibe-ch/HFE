@@ -14,8 +14,10 @@ logger.propagate = False
 
 
 def ext(filename, new_ext):
-    """changes the file extension"""
-    return filename.replace("." + filename.split(".")[-1], new_ext)
+    """Changes the file extension."""
+    if isinstance(filename, Path):
+        filename = str(filename.resolve())
+    return filename.rsplit(".", 1)[0] + new_ext
 
 
 def print_mem_usage():
@@ -415,7 +417,9 @@ def log_summary(bone, config, filenames, var):
 
 
 class FileConfig:
-    def __init__(self, cfg, sample: str, pipeline: str = "fast", origaim_separate: bool = True):
+    def __init__(
+        self, cfg, sample: str, pipeline: str = "fast", origaim_separate: bool = True
+    ):
         self.cfg = cfg
         self.sample = sample
         self.pipeline = pipeline
@@ -452,7 +456,9 @@ class FileConfig:
 
     @property
     def file_mask(self) -> Path:
-        if self.pipeline == "fast" or (self.pipeline == "accurate" and not self.cfg.image_processing.mask_separate):
+        if self.pipeline == "fast" or (
+            self.pipeline == "accurate" and not self.cfg.image_processing.mask_separate
+        ):
             return Path(f"{self.sample}{self.cfg.filenames.filename_postfix_mask}")
         return None
 
@@ -524,7 +530,7 @@ class FileConfig:
             "INPname": str(self.inp_name),
             "VTKname": str(self.vtk_name),
             "SUMname": str(self.sum_name),
-            "VER_BPVname": str(self.ver_bpv_name)
+            "VER_BPVname": str(self.ver_bpv_name),
         }
 
         if self.pipeline == "fast":
@@ -544,7 +550,7 @@ class FileConfig:
                 filename["MASKname"] = str(self.mask_name)
 
         return filename
-    
+
     # Usage
     # cfg = ...  # Your configuration object
     # sample = "sample_name"

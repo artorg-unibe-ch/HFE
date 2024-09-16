@@ -907,7 +907,8 @@ def material_mapping_spline(
     botnodes = bone["bnds_bot"]
     topnodes = bone["bnds_top"]
     RP_coords_s = bone["reference_point_coord"]
-    inp_filename = filenames["INPname"]
+    # inp_filename = filenames["INPname"]
+    inp_filename = filenames.inp_name
     save_dir = Path(inp_filename).parent
 
     abq = AbaqusWriter(

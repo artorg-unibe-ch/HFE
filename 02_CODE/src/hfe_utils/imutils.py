@@ -279,47 +279,44 @@ def AIMreader(fileINname, spacing):
     imvtk = reader.GetOutput()
     return imvtk, spacing, scaling, slope, intercept, header
 
-def mha_reader(filename):
-    imsitk = sitk.ReadImage(filename)
-    print(type(imsitk))
-    spacing = imsitk.GetSpacing()
-    scaling = None
-    slope = None
-    intercept = None
-    header = None
-    return imsitk, spacing, scaling, slope, intercept, header
 
 def mha_header_reader(filename):
     reader = sitk.ImageFileReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename.resolve()))
     reader.LoadPrivateTagsOn()
     reader.ReadImageInformation()
 
     # Extract metadata and replace _LINEBREAK_ with actual line breaks for SimpleITK compatibility
     metadata = {}
     for k in reader.GetMetaDataKeys():
-        v = reader.GetMetaData(k).replace('_LINEBREAK_', '\n')
+        v = reader.GetMetaData(k).replace("_LINEBREAK_", "\n")
         metadata[k] = v
-        print("({0}) = = \"{1}\"".format(k, v))
+        print('({0}) = = "{1}"'.format(k, v))
 
     # Extract Density: slope from the metadata
     density_slope = None
     density_intercept = None
     mu_scaling = None
     for _, value in metadata.items():
-        if 'Density: slope' in value or 'Density: intercept' in value or 'Mu_Scaling' in value:
-            lines = value.split('\n')
+        if (
+            "Density: slope" in value
+            or "Density: intercept" in value
+            or "Mu_Scaling" in value
+        ):
+            lines = value.split("\n")
             for line in lines:
-                if 'Density: slope' in line:
+                if "Density: slope" in line:
                     density_slope = float(line.split()[-1])
-                elif 'Density: intercept' in line:
+                elif "Density: intercept" in line:
                     density_intercept = float(line.split()[-1])
-                elif 'Mu_Scaling' in line:
+                elif "Mu_Scaling" in line:
                     mu_scaling = int(line.split()[-1])
 
     spacing = reader.GetSpacing()
-    
+    spacing = np.array(spacing)
+
     return spacing, mu_scaling, density_slope, density_intercept
+
 
 def read_img_param(filenames: FileConfig):
     """
@@ -340,20 +337,20 @@ def read_img_param(filenames: FileConfig):
     print("\n ... read images")
 
     raw_filename = filenames.raw_name
-    print(f'raw_filename: {raw_filename}')
-    if raw_filename.suffix == 'AIM*':
+    print(f"raw_filename: {raw_filename}")
+    if ".AIM" in raw_filename.suffix:
         try:
             _, spacing, scaling, slope, intercept, _ = AIMreader(
-                raw_filename, np.array([0.0606997, 0.0606997, 0.0606997])
+                str(raw_filename.resolve()), np.array([0.0606997, 0.0606997, 0.0606997])
             )
         except Exception as e:
             logger.exception(f"An error occurred while using AIMreader: {e}")
             raise
-    if raw_filename.suffix in ('.mha', '.mhd'):
+    if raw_filename.suffix in (".mha", ".mhd"):
         try:
             spacing, scaling, slope, intercept = mha_header_reader(raw_filename)
         except Exception as e:
-            logger.exception(f"An error occurred while using mhd_reader: {e}")
+            logger.exception(f"An error occurred while using mha_header_reader: {e}")
             raise
 
     return spacing, scaling, slope, intercept
@@ -383,38 +380,48 @@ def read_image(name, filenames, bone, lock):
     4. Updates the bone dictionary with the processed image array.
     """
 
+    if name == "BMD" or name == "NATIVE":
+        image = filenames.raw_name
+    elif name == "SEG":
+        image = filenames.seg_name
+    elif name == "TRABMASK":
+        image = filenames.trab_mask_name
+    elif name == "CORTMASK":
+        image = filenames.cort_mask_name
+
     print("\n ... read file: " + name)
 
     spacing = bone["Spacing"]
-    if name.suffix == '*AIM*':
-        IMG_vtk = AIMreader(filenames[name + "name"], spacing)[0]
+    if "AIM" in filenames.filename_postfix_bmd:
+        image = str(image.resolve())
+        IMG_vtk = AIMreader(image, spacing)[0]
         IMG_array = vtk2numpy(IMG_vtk)
         IMG_sitk = sitk.GetImageFromArray(IMG_array)
     else:
-        IMG_sitk = general_image_reader(filenames[name])
-
+        IMG_sitk = general_image_reader(image)
+        IMG_sitk = sitk.PermuteAxes(IMG_sitk, [2, 1, 0])
     # pad image to avoid having non-zero values at the boundary
     IMG_pad = pad_image(IMG_sitk, iso_pad_size=10)
     IMG_pad = sitk.Flip(IMG_pad, [True, False, False])
 
     #! ONLY FOR TIBIA VALIDATION DATASET
-    if "C0003114" in filenames[name + "name"]:
+    if "C0003114" in filenames.sample:
         print("Removing 35 slices")
         IMG_pad = IMG_pad[:-35, :, :]
         print(IMG_pad.GetSize())
-    elif "C0003111" in filenames[name + "name"]:
+    elif "C0003111" in filenames.sample:
         print("Removing 35 slices")
         IMG_pad = IMG_pad[:-35, :, :]
         print(IMG_pad.GetSize())
-    elif "C0003106" in filenames[name + "name"]:
+    elif "C0003106" in filenames.sample:
         print("Removing 35 slices")
         IMG_pad = IMG_pad[35:, :, :]
         print(IMG_pad.GetSize())
-    elif "C0003096" in filenames[name + "name"]:
+    elif "C0003096" in filenames.sample:
         print("Removing 10 slices")
         IMG_pad = IMG_pad[:-10, :, :]
         print(IMG_pad.GetSize())
-    elif "C0003094" in filenames[name + "name"]:
+    elif "C0003094" in filenames.sample:
         print("Removing 10 slices")
         IMG_pad = IMG_pad[5:-10, :, :]
         print(IMG_pad.GetSize())
