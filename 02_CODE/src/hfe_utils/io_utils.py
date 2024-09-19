@@ -14,8 +14,10 @@ logger.propagate = False
 
 
 def ext(filename, new_ext):
-    """changes the file extension"""
-    return filename.replace("." + filename.split(".")[-1], new_ext)
+    """Changes the file extension."""
+    if isinstance(filename, Path):
+        filename = str(filename.resolve())
+    return filename.rsplit(".", 1)[0] + new_ext
 
 
 def print_mem_usage():
@@ -412,3 +414,146 @@ def log_summary(bone, config, filenames, var):
 
     with open(filenames["SUMname"], "w") as sumFile:
         sumFile.write(summary)
+
+
+class FileConfig:
+    def __init__(
+        self, cfg, sample: str, pipeline: str = "fast", origaim_separate: bool = True
+    ):
+        self.cfg = cfg
+        self.sample = sample
+        self.pipeline = pipeline
+        self.origaim_separate = origaim_separate
+        self.current_version = cfg.version.current_version
+        self.folder_id = cfg.simulations.folder_id
+        self.folder = self.folder_id[sample]
+        self.feadir = Path(cfg.paths.feadir) / self.folder
+        self.aimdir = Path(cfg.paths.aimdir) / self.folder
+        self.origaimdir = Path(cfg.paths.origaimdir) / self.folder
+        self.filename_postfix_bmd = cfg.filenames.filename_postfix_bmd
+
+    @property
+    def file_bmd(self) -> Path:
+        return Path(f"{self.sample}{self.filename_postfix_bmd}")
+
+    @property
+    def file_gray(self) -> Path:
+        if self.origaim_separate:
+            return Path(self.sample).with_suffix(".AIM")
+        return self.file_bmd
+
+    @property
+    def raw_name(self) -> Path:
+        return self.origaimdir / self.file_gray
+
+    @property
+    def bmd_name(self) -> Path:
+        return self.origaimdir / self.file_bmd
+
+    @property
+    def boundary_conditions(self) -> str:
+        return self.cfg.paths.boundary_conditions
+
+    @property
+    def file_mask(self) -> Path:
+        if self.pipeline == "fast" or (
+            self.pipeline == "accurate" and not self.cfg.image_processing.mask_separate
+        ):
+            return Path(f"{self.sample}{self.cfg.filenames.filename_postfix_mask}")
+        return None
+
+    @property
+    def mask_name(self) -> Path:
+        if self.file_mask:
+            return self.origaimdir / self.file_mask
+        return None
+
+    @property
+    def file_mask_cort(self) -> Path:
+        if self.pipeline == "accurate":
+            return Path(f"{self.sample}{self.cfg.filenames.filename_postfix_cort_mask}")
+        return None
+
+    @property
+    def file_mask_trab(self) -> Path:
+        if self.pipeline == "accurate":
+            return Path(f"{self.sample}{self.cfg.filenames.filename_postfix_trab_mask}")
+        return None
+
+    @property
+    def file_seg(self) -> Path:
+        if self.pipeline == "accurate":
+            return Path(f"{self.sample}{self.cfg.filenames.filename_postfix_seg}")
+        return None
+
+    @property
+    def cort_mask_name(self) -> Path:
+        if self.file_mask_cort:
+            return self.origaimdir / self.file_mask_cort
+        return None
+
+    @property
+    def trab_mask_name(self) -> Path:
+        if self.file_mask_trab:
+            return self.origaimdir / self.file_mask_trab
+        return None
+
+    @property
+    def seg_name(self) -> Path:
+        if self.file_seg:
+            return self.origaimdir / self.file_seg
+        return None
+
+    @property
+    def inp_name(self) -> Path:
+        return self.feadir / f"{self.sample}_V_{self.current_version}.inp"
+
+    @property
+    def vtk_name(self) -> Path:
+        return self.aimdir / f"{self.sample}_V_{self.current_version}.inp"
+
+    @property
+    def sum_name(self) -> Path:
+        return self.feadir / f"{self.sample}_V_{self.current_version}_summary.txt"
+
+    @property
+    def ver_bpv_name(self) -> Path:
+        return self.feadir / f"{self.sample}_V_{self.current_version}_BPVb"
+
+    def set_filenames(self):
+        filename = {
+            "FILEBMD": str(self.file_bmd),
+            "FILEGRAY": str(self.file_gray),
+            "RAWname": str(self.raw_name),
+            "BMDname": str(self.bmd_name),
+            "boundary_conditions": self.boundary_conditions,
+            "INPname": str(self.inp_name),
+            "VTKname": str(self.vtk_name),
+            "SUMname": str(self.sum_name),
+            "VER_BPVname": str(self.ver_bpv_name),
+        }
+
+        if self.pipeline == "fast":
+            filename["FILEMASK"] = str(self.file_mask)
+            filename["MASKname"] = str(self.mask_name)
+
+        if self.pipeline == "accurate":
+            filename["FILEMASKCORT"] = str(self.file_mask_cort)
+            filename["FILEMASKTRAB"] = str(self.file_mask_trab)
+            filename["FILESEG"] = str(self.file_seg)
+            filename["CORTMASKname"] = str(self.cort_mask_name)
+            filename["TRABMASKname"] = str(self.trab_mask_name)
+            filename["SEGname"] = str(self.seg_name)
+
+            if not self.cfg.image_processing.mask_separate:
+                filename["FILEMASK"] = str(self.file_mask)
+                filename["MASKname"] = str(self.mask_name)
+
+        return filename
+
+    # Usage
+    # cfg = ...  # Your configuration object
+    # sample = "sample_name"
+    # file_config = FileConfig(cfg, sample)
+    # print(file_config.bmd_name)
+    # print(file_config.inp_name)

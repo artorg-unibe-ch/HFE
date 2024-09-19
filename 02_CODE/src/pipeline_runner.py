@@ -17,7 +17,7 @@ from pathlib import Path
 import coloredlogs  # type: ignore
 import hydra
 from config import HFEConfig
-from hfe_accurate.hfe_accurate import pipeline_hfe
+from hfe_accurate.hfe_accurate_pipeline import pipeline_hfe
 from hydra.core.config_store import ConfigStore
 
 # flake8: noqa: E501

@@ -451,7 +451,7 @@ def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     try:
         dimZ = (np.shape(SEG_array) * spacing)[2]
     except TypeError:
-        spacing = spacing[0]  # assuming isotropic spacing
+        spacing = np.array([spacing[0], spacing[1], spacing[2]])
         dimZ = (np.shape(SEG_array) * spacing)[2]
 
     SEG_vtk, trabmask, cortmask, spacing, tolerance, dimZ = input_sanity_check(

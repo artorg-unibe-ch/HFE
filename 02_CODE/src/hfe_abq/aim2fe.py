@@ -106,10 +106,12 @@ def aim2fe_psl(cfg, sample):
     # they were deleted by medtool pre-processing
     origaim_separate_bool = cfg.image_processing.origaim_separate
 
-    filenames = io_utils.set_filenames(
-        cfg, sample, pipeline="accurate", origaim_separate=origaim_separate_bool
-    )
+    # filenames = io_utils.set_filenames(
+    #     cfg, sample, pipeline="accurate", origaim_separate=origaim_separate_bool
+    # )
 
+    filenames = io_utils.FileConfig(cfg, sample, pipeline='accurate', origaim_separate=origaim_separate_bool)
+    filenames.set_filenames()
     print(yaml.dump(filenames, default_flow_style=False))
     io_utils.print_mem_usage()
 
@@ -130,7 +132,7 @@ def aim2fe_psl(cfg, sample):
         lock = threading.Lock()
         for item in image_list:
             t = threading.Thread(
-                target=imutils.read_aim, args=(item, filenames, bone, lock)
+                target=imutils.read_image, args=(item, filenames, bone, lock)
             )
             threads.append(t)
             sleep(0.1)  # to avoid overloading the print statements
@@ -140,7 +142,7 @@ def aim2fe_psl(cfg, sample):
     else:
         image_list = ["BMD", "SEG"]
         for _, item in enumerate(image_list):
-            bone = imutils.read_aim(item, filenames, bone, lock=None)
+            bone = imutils.read_image(item, filenames, bone, lock=None)
         bone = imutils.read_aim_mask_combined("MASK", filenames, bone)
 
     # image_list = ["BMD", "SEG", "CORTMASK", "TRABMASK"]

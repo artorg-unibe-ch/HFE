@@ -1,6 +1,8 @@
 simulations:
   grayscale_filenames:
-    C0002217
+    C0003093
+    C0003104
 
   folder_id:
-    C0002217: XCT2_181
+    C0003093: 442_R_75_F
+    C0003104: 438_L_71_F

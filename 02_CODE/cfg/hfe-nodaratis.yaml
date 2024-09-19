@@ -9,7 +9,7 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      simulations.grayscale_filenames: C0000000
+      simulations.grayscale_filenames: C0003104
 
 
 mesher:
@@ -20,7 +20,7 @@ mesher:
 image_processing:
   origaim_separate: False           # For Hosseini Dataset, Image parameters are read from original aim, not from processed BMD file, as there they were deleted by medtool pre-processing
   mask_separate: True               # Standard evaluation gives two separate mask file (CORTMASK and TRABMASK), False if one maskfile with two different labels
-  imtype: BMD                       # NATIVE or BMD
+  imtype: NATIVE                    # NATIVE or BMD
   bvtv_scaling: 1                   # 0: no scaling, 1: Scaling of BVTV 61um to BVTV 11.4um [Hosseini2017]
   bvtv_slope: 0.963                 # bvtv intercept, added to each image voxel
   bvtv_intercept: 0.03814           # bvtv intercept, added to each image voxel
