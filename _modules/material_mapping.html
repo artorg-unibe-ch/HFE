@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>material_mapping &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">material_mapping</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for material_mapping</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span> <span class="nn">hfe_utils.imutils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span> <span class="nn">hfe_abq.write_abaqus</span> <span class="kn">import</span> <span class="n">AbaqusWriter</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">KDTree</span>  <span class="c1"># type: ignore</span>
+
+<span class="kn">from</span> <span class="nn">hfe_utils.io_utils</span> <span class="kn">import</span> <span class="n">FileConfig</span>
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="c1"># flake8: noqa: E501</span>
+
+
+<div class="viewcode-block" id="calculate_bvtv">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.calculate_bvtv">[docs]</a>
+<span class="k">def</span> <span class="nf">calculate_bvtv</span><span class="p">(</span><span class="n">seg_array</span><span class="p">,</span> <span class="n">mask_array</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">VOI_mm</span><span class="p">,</span> <span class="n">cog</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    POS, 06.02.2024</span>
+<span class="sd">    Calculate the bone volume to total volume (BV/TV) ratio.</span>
+
+<span class="sd">    This function calculates the BV/TV ratio, which is a measure of bone density.</span>
+<span class="sd">    It does this by first calculating the region of interest (ROI) in the given 3D array (seg_array),</span>
+<span class="sd">    then computing the bone partial volume (PHI), and finally computing the BV/TV ratio.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    seg_array (np.array): The 3D array representing the segmented image.</span>
+<span class="sd">    mask_array (np.array): The 3D array representing the mask image.</span>
+<span class="sd">    spacing (np.array): The spacing between voxels in the 3D image.</span>
+<span class="sd">    VOI_mm (float): The size of the Volume of Interest in millimeters.</span>
+<span class="sd">    cog (np.array): The center of gravity of the FE element.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    tuple: A tuple containing the PHI and RHO values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">VOI</span> <span class="o">=</span> <span class="n">VOI_mm</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">cog</span> <span class="o">/</span> <span class="n">spacing</span>
+    <span class="n">semisizes_s</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),)</span> <span class="o">*</span> <span class="mi">3</span>
+
+    <span class="k">def</span> <span class="nf">__compute_roi_indices__</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the start and end indices for a region of interest (ROI) in a 3D array.</span>
+
+<span class="sd">        The ROI is centered at a point (x, y, z) and has a size of VOI (Volume of Interest) in each dimension.</span>
+<span class="sd">        The function ensures that the indices do not go beyond the array boundaries.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        x (int): The x-coordinate of the center of the ROI.</span>
+<span class="sd">        y (int): The y-coordinate of the center of the ROI.</span>
+<span class="sd">        z (int): The z-coordinate of the center of the ROI.</span>
+<span class="sd">        VOI (int): The size of the Volume of Interest in each dimension.</span>
+<span class="sd">        seg_array (np.array): The 3D array in which to calculate the ROI.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        tuple: A tuple containing the start and end indices for the x, y, and z dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_start</span><span class="p">,</span> <span class="n">x_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="p">)</span>
+        <span class="n">y_start</span><span class="p">,</span> <span class="n">y_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="p">)</span>
+        <span class="n">z_start</span><span class="p">,</span> <span class="n">z_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">x_start</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">y_start</span><span class="p">,</span> <span class="n">y_end</span><span class="p">,</span> <span class="n">z_start</span><span class="p">,</span> <span class="n">z_end</span>
+
+    <span class="k">def</span> <span class="nf">__computePHI__</span><span class="p">(</span><span class="n">ROI</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the bone partial volume.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        ROI (ndarray): The array containing the ROI of the image.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        PHI (float): The PHI value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">ROI</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">ROI</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="c1"># check for meaningful output</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">phi</span><span class="p">):</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">phi</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">phi</span>
+
+    <span class="k">def</span> <span class="nf">__compute_bvtv__</span><span class="p">():</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the bone volume to total volume (BV/TV) ratio.</span>
+
+<span class="sd">        This function computes the BV/TV ratio by first generating a sphere array within the ROI,</span>
+<span class="sd">        then calculating the PHI and rho_s values. If the PHI value is greater than 0,</span>
+<span class="sd">        the function calculates the rho_s value. If the PHI value is not greater than 0,</span>
+<span class="sd">        the function sets both the PHI and rho_s values to 0.01.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        tuple: A tuple containing the PHI and rho_s values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__generate_sphere_array__</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Generate a 3D array with a sphere of given radius and position.</span>
+
+<span class="sd">            The function creates a 3D grid of the specified shape, and then calculates for each point in the grid</span>
+<span class="sd">            if it&#39;s inside the sphere (represented as 1) or outside the sphere (represented as 0).</span>
+
+<span class="sd">            Parameters:</span>
+<span class="sd">            shape (tuple): The shape of the 3D array to be generated.</span>
+<span class="sd">            radius (float): The radius of the sphere.</span>
+<span class="sd">            position (tuple): The position of the center of the sphere.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">            np.array: A 3D numpy array of the specified shape.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[[</span><span class="nb">slice</span><span class="p">(</span><span class="o">-</span><span class="n">x0</span><span class="p">,</span> <span class="n">dim</span> <span class="o">-</span> <span class="n">x0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">shape</span><span class="p">)]]</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x_i</span><span class="p">,</span> <span class="n">semisize</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">semisizes_s</span><span class="p">):</span>
+                <span class="n">arr</span> <span class="o">+=</span> <span class="p">(</span><span class="n">x_i</span> <span class="o">/</span> <span class="n">semisize</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">arr</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="n">x_start</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">y_start</span><span class="p">,</span> <span class="n">y_end</span><span class="p">,</span> <span class="n">z_start</span><span class="p">,</span> <span class="n">z_end</span> <span class="o">=</span> <span class="n">__compute_roi_indices__</span><span class="p">()</span>
+
+        <span class="n">ROI_seg</span> <span class="o">=</span> <span class="n">seg_array</span><span class="p">[</span><span class="n">x_start</span><span class="p">:</span><span class="n">x_end</span><span class="p">,</span> <span class="n">y_start</span><span class="p">:</span><span class="n">y_end</span><span class="p">,</span> <span class="n">z_start</span><span class="p">:</span><span class="n">z_end</span><span class="p">]</span>
+        <span class="n">ROI_mask</span> <span class="o">=</span> <span class="n">mask_array</span><span class="p">[</span><span class="n">x_start</span><span class="p">:</span><span class="n">x_end</span><span class="p">,</span> <span class="n">y_start</span><span class="p">:</span><span class="n">y_end</span><span class="p">,</span> <span class="n">z_start</span><span class="p">:</span><span class="n">z_end</span><span class="p">]</span>
+
+        <span class="n">phi_s</span> <span class="o">=</span> <span class="n">__computePHI__</span><span class="p">(</span><span class="n">ROI_mask</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">phi_s</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">ROI_mask_sphere</span> <span class="o">=</span> <span class="n">__generate_sphere_array__</span><span class="p">(</span>
+                <span class="n">shape</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ROI_seg</span><span class="p">),</span>
+                <span class="n">position</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                    <span class="n">cog_i</span> <span class="o">-</span> <span class="n">start_i</span>
+                    <span class="k">for</span> <span class="n">cog_i</span><span class="p">,</span> <span class="n">start_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">],</span> <span class="p">[</span><span class="n">x_start</span><span class="p">,</span> <span class="n">y_start</span><span class="p">,</span> <span class="n">z_start</span><span class="p">])</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="n">ROI_mask_sphere_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">ROI_mask_sphere</span><span class="p">,</span> <span class="n">ROI_mask</span><span class="p">)</span>
+            <span class="n">ROI_sphere_seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">ROI_mask_sphere_mask</span><span class="p">,</span> <span class="n">ROI_seg</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">rho_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ROI_sphere_seg</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ROI_mask_sphere_mask</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+                <span class="n">rho_s</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Ensure minimum bvtv, added by POS, 14.01.2024</span>
+            <span class="n">phi_s</span> <span class="o">=</span> <span class="mf">0.01</span>
+            <span class="n">rho_s</span> <span class="o">=</span> <span class="mf">0.01</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">phi_s</span><span class="p">)),</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rho_s</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">__compute_bvtv__</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="__material_mapping__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__material_mapping__">[docs]</a>
+<span class="k">def</span> <span class="nf">__material_mapping__</span><span class="p">(</span>
+    <span class="n">cog</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">,</span>
+    <span class="n">VOI_mm</span><span class="p">,</span>
+    <span class="n">mask_array</span><span class="p">,</span>
+    <span class="n">seg_array</span><span class="p">,</span>
+    <span class="n">SEG_correction</span><span class="p">,</span>
+    <span class="n">all_mask</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">compartment_s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compartment agnostic material mapping function</span>
+<span class="sd">    Simone Poncioni, MSB, 08.2023</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cog</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cog</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">rho_fe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cog</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">seg_array</span> <span class="o">=</span> <span class="p">(</span><span class="n">seg_array</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="n">mask_array</span> <span class="o">=</span> <span class="p">(</span><span class="n">mask_array</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+
+    <span class="n">timestart</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cog_s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cog</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+
+        <span class="n">phi_s</span><span class="p">,</span> <span class="n">rho_s</span> <span class="o">=</span> <span class="n">calculate_bvtv</span><span class="p">(</span><span class="n">seg_array</span><span class="p">,</span> <span class="n">mask_array</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">VOI_mm</span><span class="p">,</span> <span class="n">cog_s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">SEG_correction</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">TOL_SPACING</span> <span class="o">=</span> <span class="mf">0.01</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.061</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">TOL_SPACING</span><span class="p">:</span>
+                <span class="c1"># Correction curve from Varga et al. 2009 for XCTII</span>
+                <span class="n">rho_s</span> <span class="o">=</span> <span class="n">rho_s</span> <span class="o">*</span> <span class="mf">0.651</span> <span class="o">+</span> <span class="mf">0.056462</span>
+            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.082</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">TOL_SPACING</span><span class="p">:</span>
+                <span class="c1"># Correction curve from Varga et al. 2009 for XCTI, added by MI</span>
+                <span class="n">rho_s</span> <span class="o">=</span> <span class="n">rho_s</span> <span class="o">*</span> <span class="mf">0.745745</span> <span class="o">-</span> <span class="mf">0.0209902</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;SEG_correction is True but &#39;spacing&#39; is not 0.061 nor 0.082 (it is </span><span class="si">{</span><span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">))&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">all_mask</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">phi_s</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">rho_s</span> <span class="o">&lt;</span> <span class="mf">0.01</span><span class="p">:</span>
+                <span class="n">rho_s</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+        <span class="n">phi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi_s</span>
+        <span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho_s</span>
+        <span class="n">rho_fe</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># ! adapt this</span>
+
+    <span class="n">timeend</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">elaps_time</span> <span class="o">=</span> <span class="n">timeend</span> <span class="o">-</span> <span class="n">timestart</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elapsed Time: </span><span class="si">{</span><span class="n">elaps_time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    plt.figure(figsize=(10, 10))</span>
+<span class="sd">    plt.hist(phi.flatten(), bins=100)</span>
+<span class="sd">    plt.savefig(f&quot;phi_{compartment_s}_new.png&quot;)</span>
+<span class="sd">    plt.close()</span>
+
+<span class="sd">    plt.figure(figsize=(10, 10))</span>
+<span class="sd">    plt.hist(rho.flatten(), bins=100)</span>
+<span class="sd">    plt.savefig(f&quot;rho_{compartment_s}_new.png&quot;)</span>
+<span class="sd">    plt.close()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">rho_fe</span></div>
+
+
+
+<div class="viewcode-block" id="_bmc_compensation">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping._bmc_compensation">[docs]</a>
+<span class="k">def</span> <span class="nf">_bmc_compensation</span><span class="p">(</span>
+    <span class="n">BMD</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">CORTMASK</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">TRABMASK</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">cort_elms</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">trab_elms</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">RHOc</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">RHOt</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">PHIc</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">PHIt</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">FEelSize</span><span class="p">,</span>
+    <span class="n">Spacing</span><span class="p">,</span>
+    <span class="n">BMC_conservation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    # BMC compensation for all BVTV values in order to conserve bone mass during homogenization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ONE</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">THREE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">THOUSAND</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">THOUSAND_TWO_HUNDRED</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1200</span><span class="p">)</span>
+
+    <span class="c1"># fmt: off</span>
+    <span class="n">BMC_reco_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BMD</span><span class="p">[(</span><span class="n">CORTMASK</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">Spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span> <span class="o">/</span> <span class="n">THOUSAND</span>
+    <span class="n">BMC_reco_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">BMD</span><span class="p">[(</span><span class="n">TRABMASK</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">Spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span> <span class="o">/</span> <span class="n">THOUSAND</span>
+    
+    <span class="n">BMC_sim_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">RHOc</span> <span class="o">*</span> <span class="n">PHIc</span> <span class="o">*</span> <span class="n">FEelSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span><span class="p">)</span> <span class="o">*</span> <span class="n">THOUSAND_TWO_HUNDRED</span> <span class="o">/</span> <span class="n">THOUSAND</span>
+    <span class="n">BMC_sim_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">RHOt</span> <span class="o">*</span> <span class="n">PHIt</span> <span class="o">*</span> <span class="n">FEelSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span><span class="p">)</span> <span class="o">*</span> <span class="n">THOUSAND_TWO_HUNDRED</span> <span class="o">/</span> <span class="n">THOUSAND</span>
+    
+    <span class="n">lambda_BMC_c</span> <span class="o">=</span> <span class="n">BMC_reco_c</span> <span class="o">/</span> <span class="n">BMC_sim_c</span>
+    <span class="n">lambda_BMC_t</span> <span class="o">=</span> <span class="n">BMC_reco_t</span> <span class="o">/</span> <span class="n">BMC_sim_t</span>
+    <span class="n">BMC_reco_tot</span> <span class="o">=</span> <span class="n">BMC_reco_c</span> <span class="o">+</span> <span class="n">BMC_reco_t</span>
+
+    <span class="c1"># 2) Copy RHOc and RHOt dict to save uncompensated BVTV values</span>
+    <span class="n">RHOc_original</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">RHOc</span><span class="p">)</span>
+    <span class="n">RHOt_original</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">RHOt</span><span class="p">)</span>
+
+    <span class="c1"># 3) Compensate RHOb BVTV values</span>
+    <span class="c1"># TODO: check if it should be keys() or values()</span>
+    <span class="k">if</span> <span class="n">BMC_conservation</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Cortical BVTV</span>
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">cort_elms</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">RHOc</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">*</span> <span class="n">lambda_BMC_c</span> <span class="o">&lt;</span> <span class="n">ONE</span><span class="p">:</span>
+                <span class="n">RHOc</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOc_original</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">*</span> <span class="n">lambda_BMC_c</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">RHOc</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">ONE</span>
+
+        <span class="c1"># Trabecular BVTV</span>
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">trab_elms</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">RHOt</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">*</span> <span class="n">lambda_BMC_t</span> <span class="o">&lt;</span> <span class="n">ONE</span><span class="p">:</span>
+                <span class="n">RHOt</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOt_original</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">*</span> <span class="n">lambda_BMC_t</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">RHOt</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">ONE</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">cort_elms</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">RHOc</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOc_original</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">trab_elms</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">RHOt</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOt_original</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span>
+
+    <span class="n">BMC_sim_comp</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">RHOc</span> <span class="o">*</span> <span class="n">PHIc</span> <span class="o">*</span> <span class="n">FEelSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">RHOt</span> <span class="o">*</span> <span class="n">PHIt</span> <span class="o">*</span> <span class="n">FEelSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="n">THREE</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="o">*</span> <span class="n">THOUSAND_TWO_HUNDRED</span>
+        <span class="o">/</span> <span class="n">THOUSAND</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">RHOc</span><span class="p">,</span> <span class="n">RHOt</span><span class="p">,</span> <span class="n">BMC_sim_comp</span><span class="p">,</span> <span class="n">BMC_reco_tot</span><span class="p">,</span> <span class="n">lambda_BMC_c</span><span class="p">,</span> <span class="n">lambda_BMC_t</span></div>
+
+    <span class="c1"># fmt: on</span>
+
+
+<div class="viewcode-block" id="__get_masks__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__get_masks__">[docs]</a>
+<span class="k">def</span> <span class="nf">__get_masks__</span><span class="p">(</span>
+    <span class="n">cog</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">,</span>
+    <span class="n">VOI_mm</span><span class="p">,</span>
+    <span class="n">seg_array</span><span class="p">,</span>
+    <span class="n">mask_array</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">cog</span> <span class="o">/</span> <span class="n">spacing</span>
+    <span class="n">VOI</span> <span class="o">=</span> <span class="n">VOI_mm</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">semisizes_s</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),)</span> <span class="o">*</span> <span class="mi">3</span>
+
+    <span class="k">def</span> <span class="nf">__generate_sphere_array__</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a 3D array with a sphere of given radius and position.</span>
+
+<span class="sd">        The function creates a 3D grid of the specified shape, and then calculates for each point in the grid</span>
+<span class="sd">        if it&#39;s inside the sphere (represented as 1) or outside the sphere (represented as 0).</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        shape (tuple): The shape of the 3D array to be generated.</span>
+<span class="sd">        radius (float): The radius of the sphere.</span>
+<span class="sd">        position (tuple): The position of the center of the sphere.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        np.array: A 3D numpy array of the specified shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[[</span><span class="nb">slice</span><span class="p">(</span><span class="o">-</span><span class="n">x0</span><span class="p">,</span> <span class="n">dim</span> <span class="o">-</span> <span class="n">x0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">shape</span><span class="p">)]]</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x_i</span><span class="p">,</span> <span class="n">semisize</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">semisizes_s</span><span class="p">):</span>
+            <span class="n">arr</span> <span class="o">+=</span> <span class="p">(</span><span class="n">x_i</span> <span class="o">/</span> <span class="n">semisize</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">arr</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="n">VOI</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seg_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
+
+    <span class="n">ROI_seg</span> <span class="o">=</span> <span class="n">seg_array</span><span class="p">[</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+    <span class="p">]</span>
+    <span class="c1"># ROI_seg contains 2 if using the scanco segmentation in the cortical compartment</span>
+    <span class="c1"># Transforming them into 1s</span>
+    <span class="n">ROI_seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ROI_seg</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ROI_seg</span><span class="p">)</span>
+
+    <span class="n">ROI_mask</span> <span class="o">=</span> <span class="n">mask_array</span><span class="p">[</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+    <span class="p">]</span>
+    <span class="n">ROI_mask</span><span class="p">[</span><span class="n">ROI_mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># calculate center of sphere in new image</span>
+    <span class="n">xc</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">yc</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">zc</span> <span class="o">=</span> <span class="n">z</span> <span class="o">-</span> <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">ROI_mask_sphere</span> <span class="o">=</span> <span class="n">__generate_sphere_array__</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ROI_seg</span><span class="p">),</span> <span class="p">[</span><span class="n">xc</span><span class="p">,</span> <span class="n">yc</span><span class="p">,</span> <span class="n">zc</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ROI_seg</span><span class="p">,</span> <span class="n">ROI_mask</span><span class="p">,</span> <span class="n">ROI_mask_sphere</span></div>
+
+
+
+<div class="viewcode-block" id="__computePHI__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__computePHI__">[docs]</a>
+<span class="k">def</span> <span class="nf">__computePHI__</span><span class="p">(</span><span class="n">ROI</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the bone partial volume.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ROI (ndarray): The array containing the ROI of the image.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    PHI (float): The PHI value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">ROI</span><span class="p">))</span> <span class="o">/</span> <span class="n">ROI</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># check for meaningful output</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">phi</span><span class="p">):</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">phi</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">phi</span></div>
+
+
+
+<div class="viewcode-block" id="__get_fe_dims__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__get_fe_dims__">[docs]</a>
+<span class="k">def</span> <span class="nf">__get_fe_dims__</span><span class="p">(</span><span class="n">img_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">FEelSize</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Spacing</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to retrieve same dimensions as FE mesh in Denis&#39; mesh construction</span>
+<span class="sd">    Simone Poncioni, MSB, 17.08.2023</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    - img_shape (tuple): shape of the original image</span>
+<span class="sd">    - FEelSize (float): size of the finite elements in the FE mesh --&gt; consistent with Denis&#39;s mesh construction</span>
+<span class="sd">    - Spacing (float): voxel spacing of the original image</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - MESH_centroids_mm (numpy.ndarray): array of centroids of each element in the FE mesh, in millimeters</span>
+<span class="sd">    - FEdimX (int): dimension of the FE mesh in the X direction</span>
+<span class="sd">    - FEdimY (int): dimension of the FE mesh in the Y direction</span>
+<span class="sd">    - FEdimZ (int): dimension of the FE mesh in the Z direction</span>
+<span class="sd">    - CoarseFactor (float): coarsening factor used to construct the FE mesh</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">CoarseFactor</span> <span class="o">=</span> <span class="n">FEelSize</span> <span class="o">/</span> <span class="n">Spacing</span>
+    <span class="n">MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+        <span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img_shape</span><span class="p">)</span> <span class="o">/</span> <span class="n">CoarseFactor</span><span class="p">)]),</span>
+    <span class="p">)</span>
+    <span class="c1"># Find dimensions of mesh</span>
+    <span class="n">FEdimX</span> <span class="o">=</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># Dimension in X</span>
+    <span class="n">FEdimY</span> <span class="o">=</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Dimension in Y</span>
+    <span class="n">FEdimZ</span> <span class="o">=</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Dimension in Z</span>
+
+    <span class="c1"># Calculate the centroids of each element in a sorted array (x, y, z)</span>
+    <span class="c1"># Assuming that the mesh is centered in the middle of the image</span>
+    <span class="c1"># Assuming that the voxel is isotropic</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">MESH</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">CoarseFactor</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">CoarseFactor</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">CoarseFactor</span>
+    <span class="n">MSL_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">))</span>
+    <span class="n">MSL_centroids_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">MSL_centroids</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">MSL_centroids_mm</span> <span class="o">=</span> <span class="n">MSL_centroids_r</span> <span class="o">*</span> <span class="n">Spacing</span>
+
+    <span class="k">return</span> <span class="n">MSL_centroids_mm</span><span class="p">,</span> <span class="n">FEdimX</span><span class="p">,</span> <span class="n">FEdimY</span><span class="p">,</span> <span class="n">FEdimZ</span><span class="p">,</span> <span class="n">CoarseFactor</span></div>
+
+
+
+<div class="viewcode-block" id="getClosestPhysPoint">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.getClosestPhysPoint">[docs]</a>
+<span class="k">def</span> <span class="nf">getClosestPhysPoint</span><span class="p">(</span><span class="n">centroids_mesh</span><span class="p">,</span> <span class="n">phys_points</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds the closest physical point to each centroid in the cortical mesh.</span>
+<span class="sd">    You can then mask the physical points with this array to get the closest physical point for each centroid</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    - centroids_mesh (numpy.ndarray): array of centroids of each element in the cortical mesh, in millimeters (m, 3)</span>
+<span class="sd">    - phys_points (numpy.ndarray): array of physical points, in millimeters (n, 3)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - distances (numpy.ndarray): array of distances between each centroid and its closest physical point</span>
+<span class="sd">    - indices (numpy.ndarray): array of indices of the closest physical point for each centroid</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">kdTree</span> <span class="o">=</span> <span class="n">KDTree</span><span class="p">(</span><span class="n">phys_points</span><span class="p">,</span> <span class="n">leafsize</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">copy_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">balanced_tree</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">distances</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">kdTree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">centroids_mesh</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">distances</span><span class="p">,</span> <span class="n">indices</span></div>
+
+
+
+<div class="viewcode-block" id="correspondence_dict">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.correspondence_dict">[docs]</a>
+<span class="k">def</span> <span class="nf">correspondence_dict</span><span class="p">(</span><span class="n">centroids_mesh</span><span class="p">,</span> <span class="n">closest_phys_points</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a correspondence dictionary between physical points and centroids in the mesh.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    - centroids_mesh (numpy.ndarray): array of centroids of each element in the mesh, in millimeters</span>
+<span class="sd">    - closest_phys_points (numpy.ndarray): array of indices of the closest physical point for each centroid in the MSL kernel</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - correspondence_dict (dict): dictionary mapping each physical point index to its corresponding centroid in the mesh</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">correspondence_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">centroids_mesh</span><span class="p">):</span>
+        <span class="n">correspondence_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">closest_phys_points</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">correspondence_dict</span></div>
+
+
+
+<div class="viewcode-block" id="vectoronplane">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.vectoronplane">[docs]</a>
+<span class="k">def</span> <span class="nf">vectoronplane</span><span class="p">(</span>
+    <span class="n">evect_max</span><span class="p">,</span>
+    <span class="n">evect_mid</span><span class="p">,</span>
+    <span class="n">evect_min</span><span class="p">,</span>
+    <span class="n">direction</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    evect_max</span>
+<span class="sd">    evect_mid</span>
+<span class="sd">    evect_min</span>
+<span class="sd">    direction</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    3 numpy arrays in order evect min, evect mid, evect max</span>
+
+<span class="sd">    evect_max_projected is computed by projection of direction (usually [0,0,1]) into the plane evect_max, evect_mid.</span>
+<span class="sd">    evect_min_projected is orthogonal to max and mid, so computed from their cross product</span>
+<span class="sd">    evect_mid_projected is orthogonal to max and min, so computed from their cross produc</span>
+<span class="sd">    Old implementation</span>
+<span class="sd">    normal = numpy.cross(evect_max, evect_mid)</span>
+<span class="sd">    normalized = normal / numpy.linalg.norm(normal)</span>
+<span class="sd">    evect_max_projected_normalized = (</span>
+<span class="sd">            direction - numpy.dot(direction, normalized) * normalized</span>
+<span class="sd">    )</span>
+<span class="sd">    evect_max_projected = evect_max_projected_normalized * numpy.linalg.norm(evect_max)</span>
+
+<span class="sd">    evect_min_projected = normalized</span>
+<span class="sd">    evect_mid_projected = numpy.cross(evect_max_projected, normalized)</span>
+<span class="sd">    evect_max_proj = direction - numpy.dot(direction, normal)</span>
+<span class="sd">    Projection acc. https://www.maplesoft.com/support/help/maple/view.aspx?path=MathApps%2FProjectionOfVectorOntoPlane</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">normal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">evect_max</span><span class="p">,</span> <span class="n">evect_mid</span><span class="p">)</span>
+
+        <span class="n">evect_max_proj</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">direction</span>
+            <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">direction</span><span class="p">,</span> <span class="n">normal</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">normal</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">normal</span>
+        <span class="p">)</span>
+
+        <span class="n">evect_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">evect_max_proj</span><span class="p">,</span> <span class="n">normal</span><span class="p">)</span>
+
+        <span class="n">evect_min</span> <span class="o">=</span> <span class="n">normal</span>
+
+        <span class="n">evect_max_projected</span> <span class="o">=</span> <span class="n">evect_max_proj</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">evect_max_proj</span><span class="p">)</span>
+        <span class="n">evect_mid_projected</span> <span class="o">=</span> <span class="n">evect_mid</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">evect_mid</span><span class="p">)</span>
+        <span class="n">evect_min_projected</span> <span class="o">=</span> <span class="n">evect_min</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">evect_min</span><span class="p">)</span>
+
+        <span class="n">scal_max_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">evect_max_projected</span><span class="p">,</span> <span class="n">evect_mid_projected</span><span class="p">)</span>
+        <span class="n">scal_max_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">evect_max_projected</span><span class="p">,</span> <span class="n">evect_min_projected</span><span class="p">)</span>
+        <span class="n">scal_mid_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">evect_mid_projected</span><span class="p">,</span> <span class="n">evect_min_projected</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">scal_max_mid</span> <span class="o">+</span> <span class="n">scal_max_min</span> <span class="o">+</span> <span class="n">scal_mid_min</span> <span class="o">&gt;</span> <span class="mf">0.001</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;projected vectors are not orthogonal!&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">evect_min_projected</span> <span class="o">=</span> <span class="n">evect_min</span>
+        <span class="n">evect_mid_projected</span> <span class="o">=</span> <span class="n">evect_mid</span>
+        <span class="n">evect_max_projected</span> <span class="o">=</span> <span class="n">evect_max</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Could not perform the vector projection in utils.vectoronplane()!&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">evect_min_projected</span><span class="p">,</span> <span class="n">evect_mid_projected</span><span class="p">,</span> <span class="n">evect_max_projected</span></div>
+
+
+
+<div class="viewcode-block" id="compute_isoFAB">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.compute_isoFAB">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_isoFAB</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns isotropic fabric</span>
+<span class="sd">    return [eval1, eval2, eval3], [evecxx, evecxy, evecxz], [evecyx, evecyy, evecyz], [eveczx, eveczy, eveczz]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="cai_evalues">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.cai_evalues">[docs]</a>
+<span class="k">def</span> <span class="nf">cai_evalues</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns evalues of Cai et al. (2019) adapted for transverse isotropy.</span>
+<span class="sd">    From human cortical bone of the proximal femur.</span>
+<span class="sd">    https://doi.org/10.1016/j.actbio.2019.03.043</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Evalues E1, E2, E3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">E3</span> <span class="o">=</span> <span class="mf">1.124</span>
+    <span class="n">E2</span> <span class="o">=</span> <span class="mf">0.938</span>
+    <span class="n">E1</span> <span class="o">=</span> <span class="mf">0.938</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">E1</span><span class="p">,</span> <span class="n">E2</span><span class="p">,</span> <span class="n">E3</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="__compute_eval_evect_projection__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__compute_eval_evect_projection__">[docs]</a>
+<span class="k">def</span> <span class="nf">__compute_eval_evect_projection__</span><span class="p">(</span><span class="n">elms</span><span class="p">,</span> <span class="n">_evect</span><span class="p">):</span>
+    <span class="c1"># Fabric projection for cortical bone</span>
+    <span class="n">evals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">elms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evects</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">elms</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="c1"># TODO: make sure that the order of the evects is correct</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elms</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_evect</span><span class="p">[</span><span class="n">idx</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># min</span>
+        <span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">_evect</span><span class="p">[</span><span class="n">idx</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># mid</span>
+        <span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">_evect</span><span class="p">[</span><span class="n">idx</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># max</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">]))):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;warning: nan in evect&quot;</span><span class="p">)</span>
+            <span class="c1"># return 3x3 identity matrix</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_isoFAB</span><span class="p">()</span>
+        <span class="n">evals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cai_evalues</span><span class="p">()</span>  <span class="c1"># Cai et al, Acta Biomater. 2019</span>
+
+    <span class="k">return</span> <span class="n">evals</span><span class="p">,</span> <span class="n">evects</span></div>
+
+
+
+<div class="viewcode-block" id="__compute_eval_evect__">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.__compute_eval_evect__">[docs]</a>
+<span class="k">def</span> <span class="nf">__compute_eval_evect__</span><span class="p">(</span><span class="n">MSL_kernel_list</span><span class="p">,</span> <span class="n">elms</span><span class="p">,</span> <span class="n">BVseg</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes Eigenvalues and Eigenvectors for a given element using MSL_kernel_list, which is a return value of</span>
+<span class="sd">    preprocessing.compute_local_MSL (stored in bone: dict)</span>
+
+<span class="sd">    Can be used for cortical or trabecular phase. Note that for cortical phase projection = True!</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    MSL_kernel_list:    List with areaweighted dyadic products of triangulation, after kernel homogenization</span>
+<span class="sd">    BVseg               bone volume from segmentation for specific bone phase</span>
+<span class="sd">    projection          Defines if projection of global Z on plane of MSL (used for cortical phase to have main</span>
+<span class="sd">                        orientation along cortical shell</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    eval                Eigenvalues</span>
+<span class="sd">    evect               Eigenvectors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">evals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">elms</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evects</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">elms</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">ee</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">eee</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elms</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">msl_kernel_idx</span> <span class="o">=</span> <span class="n">MSL_kernel_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">bv_i</span> <span class="o">=</span> <span class="n">BVseg</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># only return value</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">msl_kernel_idx</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
+            <span class="n">msl_kernel_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># MSL method according to Hosseini Bone 2017</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">bv_i</span> <span class="o">*</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">msl_kernel_idx</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">MSL</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">H</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+            <span class="n">evalue</span><span class="p">,</span> <span class="n">evect</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">MSL</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Exception n. </span><span class="si">{</span><span class="n">ee</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">MSL_kernel_list[i]:</span><span class="se">\n</span><span class="si">{</span><span class="n">MSL_kernel_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">BVseg[i]:</span><span class="se">\n</span><span class="si">{</span><span class="n">BVseg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">ee</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># returns evalue [1, 1, 1], evect[X, Y, Z] -&gt; min, mid, max</span>
+            <span class="n">evalue</span><span class="p">,</span> <span class="n">evect</span> <span class="o">=</span> <span class="n">compute_isoFAB</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evalue</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">evalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evalue</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evect</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">evect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evect</span><span class="p">)</span>
+
+        <span class="n">_argsort</span> <span class="o">=</span> <span class="n">evalue</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>  <span class="c1"># order eigenvalues 0=min, 1=mid, 2=max</span>
+        <span class="n">evalue</span> <span class="o">=</span> <span class="n">evalue</span><span class="p">[</span><span class="n">_argsort</span><span class="p">]</span>
+        <span class="n">evect</span> <span class="o">=</span> <span class="n">evect</span><span class="p">[:,</span> <span class="n">_argsort</span><span class="p">]</span>
+        <span class="n">evalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">e</span><span class="o">.</span><span class="n">real</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">evalue</span><span class="p">])</span>
+        <span class="n">evect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evect</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">projection</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Fabric projection for cortical bone</span>
+            <span class="c1"># vectoronplane requires inputs evect max, mid, min, so evect[2], evect[1], evect[0]</span>
+            <span class="n">evect</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">evect</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">evect</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">vectoronplane</span><span class="p">(</span>
+                <span class="n">evect</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">evect</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">evect</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evect</span><span class="p">))):</span>
+                <span class="c1"># return 3x3 identity matrix</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">evect</span> <span class="o">=</span> <span class="n">compute_isoFAB</span><span class="p">()</span>
+            <span class="n">evalue</span> <span class="o">=</span> <span class="n">cai_evalues</span><span class="p">()</span>  <span class="c1"># Cai et al, Acta Biomater. 2019</span>
+
+        <span class="n">_lim</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evalue</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">_lim</span><span class="p">):</span>
+            <span class="c1"># raise ValueError(f&quot;evalue &gt; {_lim} in element {i}&quot;)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exception n. </span><span class="si">{</span><span class="n">eee</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">evalue &gt; </span><span class="si">{</span><span class="n">_lim</span><span class="si">}</span><span class="s2"> in element </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">eee</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">evalue</span><span class="p">,</span> <span class="n">evect</span> <span class="o">=</span> <span class="n">compute_isoFAB</span><span class="p">()</span>
+            <span class="n">evalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">e</span><span class="o">.</span><span class="n">real</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">evalue</span><span class="p">])</span>
+            <span class="n">evect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evect</span><span class="p">)</span>
+
+        <span class="n">evals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">evalue</span>
+        <span class="n">evects</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">evect</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MSL exception encountered </span><span class="si">{</span><span class="n">ee</span><span class="si">}</span><span class="s2"> times&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Eigenvector exception encountered </span><span class="si">{</span><span class="n">eee</span><span class="si">}</span><span class="s2"> times&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">evals</span><span class="p">,</span> <span class="n">evects</span></div>
+
+
+
+<div class="viewcode-block" id="material_mapping_spline">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.material_mapping_spline">[docs]</a>
+<span class="k">def</span> <span class="nf">material_mapping_spline</span><span class="p">(</span>
+    <span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">cfg</span><span class="p">,</span>
+    <span class="n">filenames</span><span class="p">:</span> <span class="n">FileConfig</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Material Mapping, including PSL ghost padding layers as copy of most distal and proximal layers</span>
+<span class="sd">    For accurate PSL pipeline</span>
+<span class="sd">    Additionaly, the optional BMC conversion can be specified in config.yaml.</span>
+<span class="sd">    This function will conserve BMC from image to hFE model to ensure, no mass conservation.</span>
+
+<span class="sd">    Included new MSL fabric evaluation with separation between cortex and trabecular bone</span>
+<span class="sd">    Version adapted for spline meshing algorithm (POS, 08.2023)</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    # ? add parameters</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    # ? add returns</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># size of computePHI volume of interest, same as Schenk et al. 2022</span>
+    <span class="n">VOI_cort_mm</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">ROI_BVTV_size_cort</span>
+    <span class="n">VOI_trab_mm</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">ROI_BVTV_size_trab</span>
+
+    <span class="c1"># get images</span>
+    <span class="n">BVTVscaled</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVscaled&quot;</span><span class="p">]</span>
+    <span class="n">BMD_array</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMDscaled&quot;</span><span class="p">]</span>
+    <span class="n">CORTMASK_array</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">TRABMASK_array</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">SEG_array</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">]</span>
+
+    <span class="c1"># get bone values</span>
+    <span class="n">FEelSize</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]</span>
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span>
+    <span class="n">air_elements</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">air_elements</span>
+    <span class="n">ROI_BVTV_size_trab</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">ROI_BVTV_size_cort</span>
+    <span class="n">ROI_BVTV_size_cort</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">ROI_BVTV_size_trab</span>
+    <span class="n">fabric_type</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">fabric_type</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">fabric_type</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+        <span class="c1"># Computed by compute_local_MSL and assign_MSL_triangulation</span>
+        <span class="n">MSL_kernel_list_cort</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MSL_kernel_list_cort&quot;</span><span class="p">]</span>
+        <span class="n">MSL_kernel_list_trab</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MSL_kernel_list_trab&quot;</span><span class="p">]</span>
+
+    <span class="c1"># * Material mapping</span>
+    <span class="n">RHOc</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># RHOc_corrected = {}  # RHO corrected by PBV (RHO * PHI)</span>
+    <span class="n">RHOt</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># RHOt_corrected = {}  # RHO corrected by PBV (RHO * PHI)</span>
+    <span class="n">RHOc_FE</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># RHO of only FE element (ROI = FEelement)</span>
+    <span class="n">RHOt_FE</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># RHO of only FE element (ROI = FEelement)</span>
+    <span class="n">PHIc</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">PHIt</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">mm</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># BVTVcortseg = {}</span>
+    <span class="c1"># BVTVtrabseg = {}</span>
+    <span class="n">BVTVcortseg_elem</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">BVTVtrabseg_elem</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cogs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">DOA</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">cog_real_cort</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_cort&quot;</span><span class="p">]</span>
+    <span class="n">cog_real_trab</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_trab&quot;</span><span class="p">]</span>
+
+    <span class="c1"># # * Cortical compartment</span>
+    <span class="c1">#! As we are basing it on BMD and not SEG, SEG_correction=False in cortical compartment!</span>
+    <span class="c1">#! (POS, 21.03.2024)</span>
+    <span class="n">phi_cort</span><span class="p">,</span> <span class="n">rho_cort</span><span class="p">,</span> <span class="n">rho_fe_cort</span> <span class="o">=</span> <span class="n">__material_mapping__</span><span class="p">(</span>
+        <span class="n">cog_real_cort</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="p">,</span>
+        <span class="n">VOI_cort_mm</span><span class="p">,</span>
+        <span class="n">CORTMASK_array</span><span class="p">,</span>
+        <span class="n">BVTVscaled</span><span class="p">,</span>
+        <span class="n">SEG_correction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">all_mask</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">old_cfg</span><span class="o">.</span><span class="n">all_mask</span><span class="p">,</span>
+        <span class="n">compartment_s</span><span class="o">=</span><span class="s2">&quot;cort&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># * Trabecular compartment</span>
+    <span class="n">phi_trab</span><span class="p">,</span> <span class="n">rho_trab</span><span class="p">,</span> <span class="n">rho_fe_trab</span> <span class="o">=</span> <span class="n">__material_mapping__</span><span class="p">(</span>
+        <span class="n">cog_real_trab</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="p">,</span>
+        <span class="n">VOI_trab_mm</span><span class="p">,</span>
+        <span class="n">TRABMASK_array</span><span class="p">,</span>
+        <span class="n">SEG_array</span><span class="p">,</span>
+        <span class="n">SEG_correction</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">SEG_correction</span><span class="p">,</span>
+        <span class="n">all_mask</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">old_cfg</span><span class="o">.</span><span class="n">all_mask</span><span class="p">,</span>
+        <span class="n">compartment_s</span><span class="o">=</span><span class="s2">&quot;trab&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ? Not very elegant, but assures back compatibility with Denis&#39;s code</span>
+    <span class="n">PHIc</span> <span class="o">=</span> <span class="n">phi_cort</span>
+    <span class="n">PHIt</span> <span class="o">=</span> <span class="n">phi_trab</span>
+    <span class="n">RHOc</span> <span class="o">=</span> <span class="n">rho_cort</span>
+    <span class="n">RHOt</span> <span class="o">=</span> <span class="n">rho_trab</span>
+    <span class="n">RHOc_FE</span> <span class="o">=</span> <span class="n">rho_fe_cort</span>
+    <span class="n">RHOt_FE</span> <span class="o">=</span> <span class="n">rho_fe_trab</span>
+    <span class="n">RHOc_corrected</span> <span class="o">=</span> <span class="n">RHOc</span> <span class="o">*</span> <span class="n">PHIc</span>
+    <span class="n">RHOt_corrected</span> <span class="o">=</span> <span class="n">RHOt</span> <span class="o">*</span> <span class="n">PHIt</span>  <span class="c1"># ? in original function, it&#39;s RHOc * PHIt</span>
+
+    <span class="c1"># Compute elemental BVTV from segmentation</span>
+    <span class="c1"># Method computePHI can be used on segmentation instead of mask</span>
+    <span class="n">BVTVcortseg_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cog_s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ROI_mask_s</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">__get_masks__</span><span class="p">(</span>
+            <span class="n">cog_s</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">VOI_cort_mm</span><span class="p">,</span> <span class="n">SEG_array</span><span class="p">,</span> <span class="n">CORTMASK_array</span>
+        <span class="p">)</span>
+        <span class="n">BVTVcortseg_elem_s</span> <span class="o">=</span> <span class="n">__computePHI__</span><span class="p">(</span><span class="n">ROI_mask_s</span><span class="p">)</span>
+        <span class="n">BVTVcortseg_elem</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">BVTVcortseg_elem_s</span>
+
+    <span class="n">BVTVtrabseg_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cog_real_trab</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cog_s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cog_real_trab</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ROI_mask_s</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">__get_masks__</span><span class="p">(</span>
+            <span class="n">cog_s</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">VOI_trab_mm</span><span class="p">,</span> <span class="n">SEG_array</span><span class="p">,</span> <span class="n">TRABMASK_array</span>
+        <span class="p">)</span>
+        <span class="n">BVTVtrabseg_elem_s</span> <span class="o">=</span> <span class="n">__computePHI__</span><span class="p">(</span><span class="n">ROI_mask_s</span><span class="p">)</span>
+        <span class="n">BVTVtrabseg_elem</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">BVTVtrabseg_elem_s</span>
+
+    <span class="n">BVTVcortseg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
+        <span class="n">BVTVcortseg_elem</span><span class="p">,</span>
+        <span class="n">PHIc</span><span class="p">,</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">BVTVcortseg_elem</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="n">where</span><span class="o">=</span><span class="n">PHIc</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">BVTVtrabseg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
+        <span class="n">BVTVtrabseg_elem</span><span class="p">,</span>
+        <span class="n">PHIt</span><span class="p">,</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">BVTVtrabseg_elem</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="n">where</span><span class="o">=</span><span class="n">PHIt</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">BVcortseg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">BVTVcortseg_elem</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_cort&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">BVTVcortseg_elem</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">BVtrabseg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">BVTVtrabseg_elem</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_trab&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">BVTVtrabseg_elem</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Evaluate Fabric using MSL</span>
+    <span class="n">img_shape</span> <span class="o">=</span> <span class="n">SEG_array</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">MSL_centroids_mm</span><span class="p">,</span> <span class="n">FEdimX</span><span class="p">,</span> <span class="n">FEdimY</span><span class="p">,</span> <span class="n">FEdimZ</span><span class="p">,</span> <span class="n">CoarseFactor</span> <span class="o">=</span> <span class="n">__get_fe_dims__</span><span class="p">(</span>
+        <span class="n">img_shape</span><span class="p">,</span> <span class="n">FEelSize</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># getClosestPhysPoint needs a np.ndarray, not dict_values</span>
+    <span class="n">cog_real_cort_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+    <span class="n">cog_real_trab_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cog_real_trab</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">orthotropic_cortex</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">closest_distances_cort</span><span class="p">,</span> <span class="n">closest_phys_points_cort</span> <span class="o">=</span> <span class="n">getClosestPhysPoint</span><span class="p">(</span>
+            <span class="n">cog_real_cort_np</span><span class="p">,</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;evect_origin&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">closest_distances_cort</span><span class="p">,</span> <span class="n">closest_phys_points_cort</span> <span class="o">=</span> <span class="n">getClosestPhysPoint</span><span class="p">(</span>
+            <span class="n">cog_real_cort_np</span><span class="p">,</span> <span class="n">MSL_centroids_mm</span>
+        <span class="p">)</span>
+
+    <span class="n">closest_distances_trab</span><span class="p">,</span> <span class="n">closest_phys_points_trab</span> <span class="o">=</span> <span class="n">getClosestPhysPoint</span><span class="p">(</span>
+        <span class="n">cog_real_trab_np</span><span class="p">,</span> <span class="n">MSL_centroids_mm</span>
+    <span class="p">)</span>
+
+    <span class="n">correspondences_cort</span> <span class="o">=</span> <span class="n">correspondence_dict</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="p">,</span> <span class="n">closest_phys_points_cort</span><span class="p">)</span>
+    <span class="n">correspondences_trab</span> <span class="o">=</span> <span class="n">correspondence_dict</span><span class="p">(</span><span class="n">cog_real_trab</span><span class="p">,</span> <span class="n">closest_phys_points_trab</span><span class="p">)</span>
+
+    <span class="n">elms_cort</span> <span class="o">=</span> <span class="n">correspondences_cort</span>
+    <span class="n">elms_trab</span> <span class="o">=</span> <span class="n">correspondences_trab</span>
+
+    <span class="k">if</span> <span class="n">fabric_type</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">orthotropic_cortex</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">m_cort</span><span class="p">,</span> <span class="n">mm_cort</span> <span class="o">=</span> <span class="n">__compute_eval_evect_projection__</span><span class="p">(</span>
+                <span class="n">elms_cort</span><span class="p">,</span>
+                <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;cort_projection_evect&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m_cort</span><span class="p">,</span> <span class="n">mm_cort</span> <span class="o">=</span> <span class="n">__compute_eval_evect__</span><span class="p">(</span>
+                <span class="n">MSL_kernel_list_cort</span><span class="p">,</span> <span class="n">elms_cort</span><span class="p">,</span> <span class="n">BVcortseg</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+        <span class="n">m_trab</span><span class="p">,</span> <span class="n">mm_trab</span> <span class="o">=</span> <span class="n">__compute_eval_evect__</span><span class="p">(</span>
+            <span class="n">MSL_kernel_list_trab</span><span class="p">,</span> <span class="n">elms_trab</span><span class="p">,</span> <span class="n">BVtrabseg</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="c1"># * checking that no mixed elements were forgotten</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">m_cort</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">m_trab</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">cog_real_trab</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">air_elements</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;air elements not implemented yet&quot;</span><span class="p">)</span>
+            <span class="c1"># ! added by Michael to produce a fullblock element</span>
+            <span class="c1"># ! needed for longitudinal studies to have always the same amount of elements</span>
+
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nel_CORT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">m_cort</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nel_TRAB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">m_trab</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The following number of elements were mapped for each phase</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  - Cortical:</span><span class="se">\t</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">m_cort</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  - Trabecular:</span><span class="se">\t</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">m_trab</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">RHOc_comp</span><span class="p">,</span>
+        <span class="n">RHOt_comp</span><span class="p">,</span>
+        <span class="n">BMC_sim_comp</span><span class="p">,</span>
+        <span class="n">BMC_reco_tot</span><span class="p">,</span>
+        <span class="n">lambda_BMC_c</span><span class="p">,</span>
+        <span class="n">lambda_BMC_t</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_bmc_compensation</span><span class="p">(</span>
+        <span class="n">BMD_array</span><span class="p">,</span>
+        <span class="n">CORTMASK_array</span><span class="p">,</span>
+        <span class="n">TRABMASK_array</span><span class="p">,</span>
+        <span class="n">elms_cort</span><span class="p">,</span>
+        <span class="n">elms_trab</span><span class="p">,</span>
+        <span class="n">RHOc</span><span class="p">,</span>
+        <span class="n">RHOt</span><span class="p">,</span>
+        <span class="n">PHIc</span><span class="p">,</span>
+        <span class="n">PHIt</span><span class="p">,</span>
+        <span class="n">FEelSize</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="p">,</span>
+        <span class="n">BMC_conservation</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">BMC_conservation</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Create abaqus input file</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">model_name</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span>
+    <span class="n">centroids_cort</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_cort&quot;</span><span class="p">]</span>
+    <span class="n">centroids_trab</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_trab&quot;</span><span class="p">]</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span>
+    <span class="n">elms</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms&quot;</span><span class="p">]</span>
+    <span class="n">botnodes</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_bot&quot;</span><span class="p">]</span>
+    <span class="n">topnodes</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_top&quot;</span><span class="p">]</span>
+    <span class="n">RP_coords_s</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;reference_point_coord&quot;</span><span class="p">]</span>
+    <span class="c1"># inp_filename = filenames[&quot;INPname&quot;]</span>
+    <span class="n">inp_filename</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">inp_name</span>
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">inp_filename</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+
+    <span class="n">abq</span> <span class="o">=</span> <span class="n">AbaqusWriter</span><span class="p">(</span>
+        <span class="n">cfg</span><span class="p">,</span>
+        <span class="n">save_dir</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">,</span>
+        <span class="n">nodes</span><span class="p">,</span>
+        <span class="n">elms</span><span class="p">,</span>
+        <span class="n">centroids_cort</span><span class="p">,</span>
+        <span class="n">centroids_trab</span><span class="p">,</span>
+        <span class="n">m_cort</span><span class="p">,</span>
+        <span class="n">m_trab</span><span class="p">,</span>
+        <span class="n">RHOc</span><span class="p">,</span>
+        <span class="n">RHOt</span><span class="p">,</span>
+        <span class="n">PHIc</span><span class="p">,</span>
+        <span class="n">PHIt</span><span class="p">,</span>
+        <span class="n">mm_cort</span><span class="p">,</span>
+        <span class="n">mm_trab</span><span class="p">,</span>
+        <span class="n">botnodes</span><span class="p">,</span>
+        <span class="n">topnodes</span><span class="p">,</span>
+        <span class="n">RP_tag</span><span class="o">=</span><span class="mi">10000000</span><span class="p">,</span>
+        <span class="n">RP_coords</span><span class="o">=</span><span class="n">RP_coords_s</span><span class="p">,</span>
+        <span class="n">STEP_INC</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">NLGEOM</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">abaqus</span><span class="o">.</span><span class="n">nlgeom</span><span class="p">,</span>
+        <span class="n">PARAM_FLAG</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">DENSIFICATOR_FLAG</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">VISCOSITY_FLAG</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">POSTYIELD_FLAG</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">_ver</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span>
+    <span class="n">umat_name_s</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">abaqus</span><span class="o">.</span><span class="n">umat</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">abq_dictionary</span> <span class="o">=</span> <span class="n">abq</span><span class="o">.</span><span class="n">abq_dictionary</span><span class="p">(</span><span class="n">umat_name</span><span class="o">=</span><span class="n">umat_name_s</span><span class="p">)</span>
+    <span class="n">inp_path</span> <span class="o">=</span> <span class="n">abq</span><span class="o">.</span><span class="n">abaqus_writer</span><span class="p">(</span><span class="n">_ver</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Writing vtk maps of fabric for visualization:&quot;</span><span class="p">)</span>
+    <span class="n">utils</span><span class="o">.</span><span class="n">fab2vtk_fromdict</span><span class="p">(</span><span class="n">filenames</span><span class="o">.</span><span class="n">vtk_name</span><span class="p">,</span> <span class="n">abq_dictionary</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Writing vtk maps of fabric for visualization: Done&quot;</span><span class="p">)</span>
+    <span class="c1"># extend m with cort and trab</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m_cort</span><span class="p">,</span> <span class="n">m_trab</span><span class="p">)</span>
+    <span class="n">mm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mm_cort</span><span class="p">,</span> <span class="n">mm_trab</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">cogs_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cog_real_cort</span><span class="p">,</span> <span class="n">cog_real_trab</span><span class="p">)</span>
+    <span class="c1"># convert cogs to dict</span>
+    <span class="n">cogs</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">cogs_arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cogs_arr</span><span class="p">))}</span>
+
+    <span class="c1"># store variables to bone dict</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOc_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOc</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOt_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOt</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOc_orig_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOc</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOt_orig_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOt</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;PHIc_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PHIc</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;PHIt_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PHIt</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOc_FE_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOc_FE</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;RHOt_FE_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RHOt_FE</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elems&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elms</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elems_bone&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elms</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+    <span class="c1"># bone[&quot;elsets&quot;] = elsets</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;marray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mmarray1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mmarray2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mmarray3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;cogs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cogs</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CoarseFactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;m_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mm_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;cogs_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cogs</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;lambda_BMC_c&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lambda_BMC_c</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;lambda_BMC_t&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lambda_BMC_t</span>
+    <span class="k">return</span> <span class="n">bone</span><span class="p">,</span> <span class="n">abq_dictionary</span><span class="p">,</span> <span class="n">inp_path</span></div>
+
+
+
+<div class="viewcode-block" id="get_bone_dict">
+<a class="viewcode-back" href="../material_mapping.html#material_mapping.get_bone_dict">[docs]</a>
+<span class="k">def</span> <span class="nf">get_bone_dict</span><span class="p">(</span><span class="n">basepath</span><span class="p">,</span> <span class="n">meshpath</span><span class="p">,</span> <span class="n">_mesh</span><span class="p">):</span>
+    <span class="n">bone</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">meshname</span> <span class="o">=</span> <span class="n">meshpath</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_BVTVscaled.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">a</span><span class="p">:</span>
+        <span class="n">BVTVscaled</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVscaled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BVTVscaled</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_BMDscaled.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+        <span class="n">BMDscaled</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMDscaled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BMDscaled</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_CORTMASK_array.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">c</span><span class="p">:</span>
+        <span class="n">CORTMASK_array</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CORTMASK_array</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_TRABMASK_array.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+        <span class="n">TRABMASK_array</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TRABMASK_array</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_SEG_array.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">SEG_array</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SEG_array</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_FEelSize.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">FEelSize</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FEelSize</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_Spacing.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">g</span><span class="p">:</span>
+        <span class="n">Spacing</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Spacing</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_spline_centroids_cort_dict.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">elems</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elems</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_spline_centroids_trab_dict.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">elems</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elems</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_spline_topnodes.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">topnodes</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_top&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">topnodes</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_spline_botnodes.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">botnodes</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_bot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">botnodes</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_elms.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">h</span><span class="p">:</span>
+        <span class="n">elems</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elems</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meshpath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_nodes.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">i</span><span class="p">:</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+
+    <span class="c1"># with open(meshpath / f&quot;{meshname}_elsets.pkl&quot;, &quot;rb&quot;) as j:</span>
+    <span class="c1">#     elsets = pickle.load(j)</span>
+    <span class="c1">#     bone[&quot;elsets&quot;] = elsets</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_MSL_kernel_list_cort.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">k</span><span class="p">:</span>
+        <span class="n">MSL_kernel_list_cort</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MSL_kernel_list_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MSL_kernel_list_cort</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_MSL_kernel_list_trab.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">l</span><span class="p">:</span>
+        <span class="n">MSL_kernel_list_trab</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MSL_kernel_list_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MSL_kernel_list_trab</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">basepath</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_MESH.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">m</span><span class="p">:</span>
+        <span class="n">MESH</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MESH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MESH</span>
+
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;reference_point_coord&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">16.5649162</span><span class="p">,</span> <span class="mf">11.66050003</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">]</span>
+
+    <span class="n">elm_vol_cort_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshpath</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_elm_vol_cort.npy&quot;</span>
+    <span class="n">elm_vol_trab_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">meshpath</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">meshname</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">_mesh</span><span class="si">}</span><span class="s2">_elm_vol_trab.npy&quot;</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">elm_vol_cort_path</span><span class="p">)</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">elm_vol_trab_path</span><span class="p">)</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meshpath</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

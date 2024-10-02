@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>imutils &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">imutils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for imutils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">struct</span> <span class="kn">import</span> <span class="n">unpack</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.image</span> <span class="k">as</span> <span class="nn">mpimg</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">SimpleITK</span> <span class="k">as</span> <span class="nn">sitk</span>
+<span class="kn">import</span> <span class="nn">vtk</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span> <span class="nn">hfe_utils.io_utils</span> <span class="kn">import</span> <span class="n">ext</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span> <span class="nn">vtk.util.numpy_support</span> <span class="kn">import</span> <span class="n">numpy_to_vtk</span><span class="p">,</span> <span class="n">vtk_to_numpy</span>  <span class="c1"># type: ignore</span>
+
+<span class="kn">from</span> <span class="nn">hfe_utils.io_utils</span> <span class="kn">import</span> <span class="n">FileConfig</span>
+
+<span class="c1"># flake8: noqa: E501</span>
+
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="vtk2numpy">
+<a class="viewcode-back" href="../imutils.html#imutils.vtk2numpy">[docs]</a>
+<span class="k">def</span> <span class="nf">vtk2numpy</span><span class="p">(</span><span class="n">imvtk</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;turns a vtk image data into a numpy array&quot;&quot;&quot;</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">imvtk</span><span class="o">.</span><span class="n">GetDimensions</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">imvtk</span><span class="o">.</span><span class="n">GetPointData</span><span class="p">()</span><span class="o">.</span><span class="n">GetScalars</span><span class="p">()</span>
+    <span class="n">imnp</span> <span class="o">=</span> <span class="n">vtk_to_numpy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="c1"># vtk and numpy have different array conventions</span>
+    <span class="n">imnp</span> <span class="o">=</span> <span class="n">imnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dim</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">imnp</span> <span class="o">=</span> <span class="n">imnp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">imnp</span></div>
+
+
+
+<div class="viewcode-block" id="numpy2vtk">
+<a class="viewcode-back" href="../imutils.html#imutils.numpy2vtk">[docs]</a>
+<span class="k">def</span> <span class="nf">numpy2vtk</span><span class="p">(</span><span class="n">imnp</span><span class="p">,</span> <span class="n">spacing</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;turns a numpy array into a vtk image data&quot;&quot;&quot;</span>
+    <span class="c1"># vtk and numpy have different array conventions</span>
+    <span class="n">imnp_flat</span> <span class="o">=</span> <span class="n">imnp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">imnp</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;int8&quot;</span><span class="p">:</span>
+        <span class="n">arraytype</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">VTK_CHAR</span>
+    <span class="k">elif</span> <span class="n">imnp</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;int16&quot;</span><span class="p">:</span>
+        <span class="n">arraytype</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">VTK_SHORT</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arraytype</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">VTK_FLOAT</span>
+    <span class="n">imvtk</span> <span class="o">=</span> <span class="n">numpy_to_vtk</span><span class="p">(</span><span class="n">num_array</span><span class="o">=</span><span class="n">imnp_flat</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">array_type</span><span class="o">=</span><span class="n">arraytype</span><span class="p">)</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkImageData</span><span class="p">()</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">SetDimensions</span><span class="p">(</span><span class="n">imnp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">SetSpacing</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">GetPointData</span><span class="p">()</span>
+    <span class="n">points</span><span class="o">.</span><span class="n">SetScalars</span><span class="p">(</span><span class="n">imvtk</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">image</span></div>
+
+
+
+<div class="viewcode-block" id="pad_image">
+<a class="viewcode-back" href="../imutils.html#imutils.pad_image">[docs]</a>
+<span class="k">def</span> <span class="nf">pad_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pads the input image with a constant value (background value) to</span>
+<span class="sd">    increase its size.</span>
+<span class="sd">    Padding is used to prevent having contours on the edges of the image,</span>
+<span class="sd">    which would cause the spline fitting to fail.</span>
+<span class="sd">    Padding is performed on the transverse plane only</span>
+<span class="sd">    (image orientation is assumed to be z, y, x)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image (SimpleITK.Image): The input image to be padded.</span>
+<span class="sd">        iso_pad_size (int): The size of the padding to be added</span>
+<span class="sd">                            to each dimension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        SimpleITK.Image: The padded image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">constant</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sitk</span><span class="o">.</span><span class="n">GetArrayFromImage</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="n">image_pad</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">ConstantPad</span><span class="p">(</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="p">),</span>
+        <span class="n">constant</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">image_pad</span></div>
+
+
+
+<div class="viewcode-block" id="__save_image_with_colorbar__">
+<a class="viewcode-back" href="../imutils.html#imutils.__save_image_with_colorbar__">[docs]</a>
+<span class="k">def</span> <span class="nf">__save_image_with_colorbar__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_path</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">divider</span> <span class="o">=</span> <span class="n">make_axes_locatable</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+    <span class="n">cax</span> <span class="o">=</span> <span class="n">divider</span><span class="o">.</span><span class="n">append_axes</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;5%&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">cax</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="save_images_with_colorbar">
+<a class="viewcode-back" href="../imutils.html#imutils.save_images_with_colorbar">[docs]</a>
+<span class="k">def</span> <span class="nf">save_images_with_colorbar</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">bone</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Saves images of arrays with or without colorbar.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): Configuration dictionary containing paths and other parameters.</span>
+<span class="sd">        sample (str): The sample identifier.</span>
+<span class="sd">        bone (dict): Dictionary containing arrays to be saved as images.</span>
+
+<span class="sd">    The function loops over the arrays in the bone dictionary and saves images.</span>
+<span class="sd">    If the array is &quot;BMD_array&quot; or &quot;SEG_array&quot;, it uses the provided function</span>
+<span class="sd">    to save the image with a colorbar. For other arrays, it saves the image without a colorbar.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">impath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">aimdir</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">],</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">Path</span><span class="p">(</span><span class="n">impath</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">array_name</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">&quot;BMD_array&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;SEG_array&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="n">array_data</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="n">array_name</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="n">array_name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">array_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">array_data</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">image_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">impath</span> <span class="o">/</span> <span class="p">(</span><span class="n">array_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)))</span>
+
+        <span class="c1"># If the array is BMD_array or SEG_array, use the function that handles colorbar</span>
+        <span class="k">if</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s2">&quot;BMD_array&quot;</span> <span class="ow">or</span> <span class="n">array_name</span> <span class="o">==</span> <span class="s2">&quot;SEG_array&quot;</span><span class="p">:</span>
+            <span class="n">__save_image_with_colorbar__</span><span class="p">(</span><span class="n">array_data</span><span class="p">,</span> <span class="n">image_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For other arrays, save without colorbar</span>
+            <span class="n">mpimg</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">array_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="get_AIM_ints">
+<a class="viewcode-back" href="../imutils.html#imutils.get_AIM_ints">[docs]</a>
+<span class="k">def</span> <span class="nf">get_AIM_ints</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function by Glen L. Niebur, University of Notre Dame (2010)</span>
+<span class="sd">    reads the integer data of an AIM file to find its header length&quot;&quot;&quot;</span>
+    <span class="n">nheaderints</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">binints</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nheaderints</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">header_int</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;=32i&quot;</span><span class="p">,</span> <span class="n">binints</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">header_int</span></div>
+
+
+
+<div class="viewcode-block" id="AIMreader">
+<a class="viewcode-back" href="../imutils.html#imutils.AIMreader">[docs]</a>
+<span class="k">def</span> <span class="nf">AIMreader</span><span class="p">(</span><span class="n">fileINname</span><span class="p">,</span> <span class="n">spacing</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads an AIM file and provides the corresponding VTK image along with spacing, calibration data, and header information.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileINname (str): The filename of the AIM file to be read.</span>
+<span class="sd">        spacing (numpy.ndarray): Initial spacing values for the image.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing the following elements:</span>
+<span class="sd">            - imvtk (vtk.vtkImageData): The VTK image data.</span>
+<span class="sd">            - spacing (numpy.ndarray): The spacing between image slices.</span>
+<span class="sd">            - scaling (float or None): The scaling factor for the image, if available.</span>
+<span class="sd">            - slope (float or None): The slope used in the image, if available.</span>
+<span class="sd">            - intercept (float or None): The intercept used in the image, if available.</span>
+<span class="sd">            - header (list): The header information from the AIM file.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: If the AIM file format is not supported.</span>
+
+<span class="sd">    This function performs the following operations:</span>
+<span class="sd">    1. Reads the header of the AIM file to determine the format and version.</span>
+<span class="sd">    2. Extracts necessary parameters such as spacing, scaling, slope, and intercept from the header.</span>
+<span class="sd">    3. Calculates the spacing based on the original dimensions and scaling factor.</span>
+<span class="sd">    4. Reads the AIM file using VTK and sets the appropriate data type and spacing.</span>
+<span class="sd">    5. Returns the VTK image data along with the extracted parameters and header information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># read header</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     &quot;</span> <span class="o">+</span> <span class="n">fileINname</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileINname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">AIM_ints</span> <span class="o">=</span> <span class="n">get_AIM_ints</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="c1"># check AIM version</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; version 020&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="o">==</span> <span class="mi">131074</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;short&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="o">==</span> <span class="mi">65537</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;char&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1376257</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;bin compressed&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span> <span class="o">+</span> <span class="s2">&quot; not supported! Exiting!&quot;</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span> <span class="o">+</span> <span class="s2">&quot;! Exiting!&quot;</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">header_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">+</span> <span class="mi">160</span>
+            <span class="n">extents</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; version 030&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">17</span><span class="p">])</span> <span class="o">==</span> <span class="mi">131074</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;short&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">17</span><span class="p">])</span> <span class="o">==</span> <span class="mi">65537</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;char&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">int</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">17</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1376257</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;bin compressed&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span> <span class="o">+</span> <span class="s2">&quot; not supported! Exiting!&quot;</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;     -&gt; format &quot;</span> <span class="o">+</span> <span class="nb">format</span> <span class="o">+</span> <span class="s2">&quot;! Exiting!&quot;</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">AIM_ints</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+            <span class="n">header_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">+</span> <span class="mi">280</span>
+            <span class="n">extents</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">24</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">26</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">AIM_ints</span><span class="p">[</span><span class="mi">28</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># collect data from header if existing</span>
+    <span class="c1"># header = re.sub(&#39;(?i) +&#39;, &#39; &#39;, header)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">header</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">intercept</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">IPLPostScanScaling</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Orig-ISQ-Dim-p&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">origdimp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Orig-ISQ-Dim-um&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">origdimum</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Orig-GOBJ-Dim-p&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">origdimp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Orig-GOBJ-Dim-um&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">origdimum</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Scaled by factor&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">scaling</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Density: intercept&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">intercept</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Density: slope&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">slope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="c1"># if el_size scale was applied, the above still takes the original</span>
+            <span class="c1"># voxel size. This function works only if an isotropic scaling</span>
+            <span class="c1"># is applied!</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;downscaled&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># avoids that the filename &#39;downscaled&#39; is interpreted as</span>
+            <span class="c1"># a scaling factor</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">IPLPostScanScaling</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># Spacing is calculated from Original Dimensions. This is wrong, when</span>
+    <span class="c1"># the images were coarsened and the voxel size is not anymore</span>
+    <span class="c1"># corresponding to the original scanning resolution!</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">spacing</span> <span class="o">=</span> <span class="n">IPLPostScanScaling</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">origdimum</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">origdimp</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">UnboundLocalError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># read AIM</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">vtk</span><span class="o">.</span><span class="n">vtkImageReader2</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetFileName</span><span class="p">(</span><span class="n">fileINname</span><span class="p">)</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetDataByteOrderToLittleEndian</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetFileDimensionality</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetDataExtent</span><span class="p">(</span><span class="n">extents</span><span class="p">)</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetHeaderSize</span><span class="p">(</span><span class="n">header_len</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;short&quot;</span><span class="p">:</span>
+        <span class="n">reader</span><span class="o">.</span><span class="n">SetDataScalarTypeToShort</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;char&quot;</span><span class="p">:</span>
+        <span class="n">reader</span><span class="o">.</span><span class="n">SetDataScalarTypeToChar</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetDataSpacing</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">Update</span><span class="p">()</span>
+    <span class="n">imvtk</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">imvtk</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">header</span></div>
+
+
+
+<div class="viewcode-block" id="mha_header_reader">
+<a class="viewcode-back" href="../imutils.html#imutils.mha_header_reader">[docs]</a>
+<span class="k">def</span> <span class="nf">mha_header_reader</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">ImageFileReader</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">SetFileName</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">resolve</span><span class="p">()))</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">LoadPrivateTagsOn</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">ReadImageInformation</span><span class="p">()</span>
+
+    <span class="c1"># Extract metadata and replace _LINEBREAK_ with actual line breaks for SimpleITK compatibility</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">reader</span><span class="o">.</span><span class="n">GetMetaDataKeys</span><span class="p">():</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">GetMetaData</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_LINEBREAK_&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;(</span><span class="si">{0}</span><span class="s1">) = = &quot;</span><span class="si">{1}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+
+    <span class="c1"># Extract Density: slope from the metadata</span>
+    <span class="n">density_slope</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">density_intercept</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">mu_scaling</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;Density: slope&quot;</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="ow">or</span> <span class="s2">&quot;Density: intercept&quot;</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="ow">or</span> <span class="s2">&quot;Mu_Scaling&quot;</span> <span class="ow">in</span> <span class="n">value</span>
+        <span class="p">):</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;Density: slope&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">density_slope</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="s2">&quot;Density: intercept&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">density_intercept</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="s2">&quot;Mu_Scaling&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">mu_scaling</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">GetSpacing</span><span class="p">()</span>
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">mu_scaling</span><span class="p">,</span> <span class="n">density_slope</span><span class="p">,</span> <span class="n">density_intercept</span></div>
+
+
+
+<div class="viewcode-block" id="read_img_param">
+<a class="viewcode-back" href="../imutils.html#imutils.read_img_param">[docs]</a>
+<span class="k">def</span> <span class="nf">read_img_param</span><span class="p">(</span><span class="n">filenames</span><span class="p">:</span> <span class="n">FileConfig</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads image parameters from the AIM image header.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filenames (dict): Dictionary containing the filenames, including the key &quot;RAWname&quot; for the raw AIM image.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        spacing (np.ndarray(float)): The spacing between image slices.</span>
+<span class="sd">        scaling (float): The scaling factor for the image.</span>
+<span class="sd">        slope (float): The slope used in the image.</span>
+<span class="sd">        intercept (float): The intercept used in the image.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        Exception: If an error occurs while reading the AIM image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> ... read images&quot;</span><span class="p">)</span>
+
+    <span class="n">raw_filename</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">raw_name</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;raw_filename: </span><span class="si">{</span><span class="n">raw_filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;.AIM&quot;</span> <span class="ow">in</span> <span class="n">raw_filename</span><span class="o">.</span><span class="n">suffix</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">AIMreader</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">raw_filename</span><span class="o">.</span><span class="n">resolve</span><span class="p">()),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0606997</span><span class="p">,</span> <span class="mf">0.0606997</span><span class="p">,</span> <span class="mf">0.0606997</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An error occurred while using AIMreader: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+    <span class="k">if</span> <span class="n">raw_filename</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.mha&quot;</span><span class="p">,</span> <span class="s2">&quot;.mhd&quot;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">spacing</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span> <span class="o">=</span> <span class="n">mha_header_reader</span><span class="p">(</span><span class="n">raw_filename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An error occurred while using mha_header_reader: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+    <span class="k">return</span> <span class="n">spacing</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span></div>
+
+
+
+<div class="viewcode-block" id="general_image_reader">
+<a class="viewcode-back" href="../imutils.html#imutils.general_image_reader">[docs]</a>
+<span class="k">def</span> <span class="nf">general_image_reader</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sitk</span><span class="o">.</span><span class="n">ReadImage</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_image">
+<a class="viewcode-back" href="../imutils.html#imutils.read_image">[docs]</a>
+<span class="k">def</span> <span class="nf">read_image</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">bone</span><span class="p">,</span> <span class="n">lock</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads an AIM image and stores it in the bone dictionary.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): Specifier for the type of image (e.g., &quot;BMD&quot;, &quot;SEG&quot;).</span>
+<span class="sd">        filenames (dict): Dictionary containing the filenames, including the key &quot;&lt;name&gt;name&quot; for the AIM image.</span>
+<span class="sd">        bone (dict): Dictionary to store the image data and related parameters.</span>
+<span class="sd">        lock (threading.Lock): Lock to ensure thread-safe operations on the bone dictionary.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Updated bone dictionary containing the numpy array of the AIM image.</span>
+
+<span class="sd">    This function performs the following operations:</span>
+<span class="sd">    1. Reads the AIM image using the AIMreader function.</span>
+<span class="sd">    2. Converts the AIM image to a numpy array.</span>
+<span class="sd">    3. Pads the image to avoid non-zero values at the boundary.</span>
+<span class="sd">    4. Updates the bone dictionary with the processed image array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;BMD&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;NATIVE&quot;</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">raw_name</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;SEG&quot;</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">seg_name</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;TRABMASK&quot;</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">trab_mask_name</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;CORTMASK&quot;</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">filenames</span><span class="o">.</span><span class="n">cort_mask_name</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> ... read file: &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s2">&quot;AIM&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_bmd</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+        <span class="n">IMG_vtk</span> <span class="o">=</span> <span class="n">AIMreader</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">spacing</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">IMG_array</span> <span class="o">=</span> <span class="n">vtk2numpy</span><span class="p">(</span><span class="n">IMG_vtk</span><span class="p">)</span>
+        <span class="n">IMG_sitk</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">GetImageFromArray</span><span class="p">(</span><span class="n">IMG_array</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">IMG_sitk</span> <span class="o">=</span> <span class="n">general_image_reader</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="n">IMG_sitk</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">PermuteAxes</span><span class="p">(</span><span class="n">IMG_sitk</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># pad image to avoid having non-zero values at the boundary</span>
+    <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">pad_image</span><span class="p">(</span><span class="n">IMG_sitk</span><span class="p">,</span> <span class="n">iso_pad_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Flip</span><span class="p">(</span><span class="n">IMG_pad</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+
+    <span class="c1">#! ONLY FOR TIBIA VALIDATION DATASET</span>
+    <span class="k">if</span> <span class="s2">&quot;C0003114&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">sample</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing 35 slices&quot;</span><span class="p">)</span>
+        <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">IMG_pad</span><span class="p">[:</span><span class="o">-</span><span class="mi">35</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">IMG_pad</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="s2">&quot;C0003111&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">sample</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing 35 slices&quot;</span><span class="p">)</span>
+        <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">IMG_pad</span><span class="p">[:</span><span class="o">-</span><span class="mi">35</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">IMG_pad</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="s2">&quot;C0003106&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">sample</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing 35 slices&quot;</span><span class="p">)</span>
+        <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">IMG_pad</span><span class="p">[</span><span class="mi">35</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">IMG_pad</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="s2">&quot;C0003096&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">sample</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing 10 slices&quot;</span><span class="p">)</span>
+        <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">IMG_pad</span><span class="p">[:</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">IMG_pad</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="s2">&quot;C0003094&quot;</span> <span class="ow">in</span> <span class="n">filenames</span><span class="o">.</span><span class="n">sample</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing 10 slices&quot;</span><span class="p">)</span>
+        <span class="n">IMG_pad</span> <span class="o">=</span> <span class="n">IMG_pad</span><span class="p">[</span><span class="mi">5</span><span class="p">:</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">IMG_pad</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+
+    <span class="n">IMG_array</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">GetArrayFromImage</span><span class="p">(</span><span class="n">IMG_pad</span><span class="p">)</span>
+    <span class="n">IMG_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">IMG_array</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;SEG&quot;</span><span class="p">:</span>
+        <span class="n">IMG_array</span><span class="p">[</span><span class="n">IMG_array</span> <span class="o">==</span> <span class="mi">127</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">IMG_array</span><span class="p">[</span><span class="n">IMG_array</span> <span class="o">==</span> <span class="mi">126</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">with</span> <span class="n">lock</span><span class="p">:</span>
+            <span class="n">bone</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMG_array</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">lock</span><span class="p">:</span>
+            <span class="n">bone</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMG_array</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> shape: </span><span class="si">{</span><span class="n">IMG_array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+
+
+<div class="viewcode-block" id="CropType">
+<a class="viewcode-back" href="../imutils.html#imutils.CropType">[docs]</a>
+<span class="k">class</span> <span class="nc">CropType</span><span class="p">:</span>
+    <span class="n">expand</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">crop</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">variable</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="__adjust__img_size__">
+<a class="viewcode-back" href="../imutils.html#imutils.__adjust__img_size__">[docs]</a>
+<span class="k">def</span> <span class="nf">__adjust__img_size__</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">coarsefactor</span><span class="p">,</span> <span class="n">crop_z</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Images are adjusted according to CropType:</span>
+<span class="sd">    0 = CropType.expand     (Expand image by copying layers)</span>
+<span class="sd">    1 = CropType.crop       (Crop image)</span>
+<span class="sd">    2 = CropType.variable   (Either crop or expand, depending on what includes less layers)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># measure image shape</span>
+    <span class="n">IMDimX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">IMDimY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">IMDimZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">AddDimX</span> <span class="o">=</span> <span class="n">coarsefactor</span> <span class="o">-</span> <span class="p">(</span><span class="n">IMDimX</span> <span class="o">%</span> <span class="n">coarsefactor</span><span class="p">)</span>
+    <span class="n">AddDimY</span> <span class="o">=</span> <span class="n">coarsefactor</span> <span class="o">-</span> <span class="p">(</span><span class="n">IMDimY</span> <span class="o">%</span> <span class="n">coarsefactor</span><span class="p">)</span>
+
+    <span class="c1"># adjust in x and y direction</span>
+    <span class="n">shape_diff</span> <span class="o">=</span> <span class="p">[</span><span class="n">AddDimX</span><span class="p">,</span> <span class="n">AddDimY</span><span class="p">]</span>
+    <span class="n">xy_image_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape_diff</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+        <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+        <span class="n">constant_values</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">crop_z</span> <span class="o">==</span> <span class="n">CropType</span><span class="o">.</span><span class="n">crop</span><span class="p">:</span>
+        <span class="n">image_adjusted</span> <span class="o">=</span> <span class="n">xy_image_adjusted</span>
+
+    <span class="k">if</span> <span class="n">crop_z</span> <span class="o">==</span> <span class="n">CropType</span><span class="o">.</span><span class="n">expand</span><span class="p">:</span>
+        <span class="n">AddDimZ</span> <span class="o">=</span> <span class="n">coarsefactor</span> <span class="o">-</span> <span class="p">(</span><span class="n">IMDimZ</span> <span class="o">%</span> <span class="n">coarsefactor</span><span class="p">)</span>
+        <span class="n">shape_diff</span> <span class="o">=</span> <span class="p">[</span><span class="n">AddDimX</span><span class="p">,</span> <span class="n">AddDimY</span><span class="p">,</span> <span class="n">AddDimZ</span><span class="p">]</span>
+        <span class="n">image_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">xy_image_adjusted</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape_diff</span><span class="p">[</span><span class="mi">2</span><span class="p">])),</span> <span class="s2">&quot;edge&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">crop_z</span> <span class="o">==</span> <span class="n">CropType</span><span class="o">.</span><span class="n">variable</span><span class="p">:</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="n">coarsefactor</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="k">if</span> <span class="n">IMDimZ</span> <span class="o">%</span> <span class="n">coarsefactor</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">AddDimZ</span> <span class="o">=</span> <span class="n">coarsefactor</span> <span class="o">-</span> <span class="p">(</span><span class="n">IMDimZ</span> <span class="o">%</span> <span class="n">coarsefactor</span><span class="p">)</span>
+            <span class="n">shape_diff</span> <span class="o">=</span> <span class="p">[</span><span class="n">AddDimX</span><span class="p">,</span> <span class="n">AddDimY</span><span class="p">,</span> <span class="n">AddDimZ</span><span class="p">]</span>
+            <span class="n">image_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">xy_image_adjusted</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape_diff</span><span class="p">[</span><span class="mi">2</span><span class="p">])),</span> <span class="s2">&quot;edge&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">IMDimZ</span> <span class="o">%</span> <span class="n">coarsefactor</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">image_adjusted</span> <span class="o">=</span> <span class="n">xy_image_adjusted</span>
+
+    <span class="k">return</span> <span class="n">image_adjusted</span></div>
+
+
+
+<div class="viewcode-block" id="adjust_image_size">
+<a class="viewcode-back" href="../imutils.html#imutils.adjust_image_size">[docs]</a>
+<span class="k">def</span> <span class="nf">adjust_image_size</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">bone</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">croptype</span><span class="o">=</span><span class="n">CropType</span><span class="o">.</span><span class="n">crop</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adjusts the image size to match the current finite element (FE) element size.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): Specifier for the type of image (e.g., &quot;BMD&quot;, &quot;SEG&quot;).</span>
+<span class="sd">        bone (dict): Dictionary containing the image data and related parameters.</span>
+<span class="sd">        cfg (dict): Configuration object containing meshing settings.</span>
+<span class="sd">        croptype (CropType, optional): Type of cropping to apply. Defaults to CropType.crop.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Updated bone dictionary with adjusted image size and related parameters.</span>
+
+<span class="sd">    This function performs the following operations:</span>
+<span class="sd">    1. Retrieves the image array and spacing from the bone dictionary.</span>
+<span class="sd">    2. Calculates the coarsening factor based on the FE element size and CT voxel size.</span>
+<span class="sd">    3. Adjusts the image size for BMD image and Mask.</span>
+<span class="sd">    4. Handles specific adjustments for XCTI image resolution (82µm).</span>
+<span class="sd">    5. Updates the bone dictionary with the original and adjusted image arrays, FE element size, and coarsening factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adjust image size for </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># get bone values</span>
+    <span class="n">img_array</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_array&quot;</span><span class="p">]</span>
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span>
+
+    <span class="c1"># coarsening factor = FE element size / CT voxel size</span>
+    <span class="n">coarse_factor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">element_size</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">fe_el_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span> <span class="o">*</span> <span class="n">coarse_factor</span>
+
+    <span class="c1"># Adjustment for BMD image and Mask</span>
+    <span class="n">img_array_adjusted</span> <span class="o">=</span> <span class="n">__adjust__img_size__</span><span class="p">(</span><span class="n">img_array</span><span class="p">,</span> <span class="n">coarse_factor</span><span class="p">,</span> <span class="n">CropType</span><span class="o">.</span><span class="n">crop</span><span class="p">)</span>
+
+    <span class="c1"># for XCTI added by Michael Indermaur</span>
+    <span class="k">if</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.082</span><span class="p">:</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">img_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">elem_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">height</span> <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">element_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">coarse_factor</span> <span class="o">=</span> <span class="n">img_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">elem_n</span>
+        <span class="n">fe_el_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">spacing</span><span class="p">)</span> <span class="o">*</span> <span class="n">coarse_factor</span>
+
+    <span class="c1"># set bone values</span>
+    <span class="c1"># copy old IMG_array to IMG_array_original and store new adjusted IMG as IMG_array</span>
+    <span class="n">bone</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_array_original&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">img_array</span>
+    <span class="n">bone</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_array&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">img_array_adjusted</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fe_el_size</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CoarseFactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coarse_factor</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+
+
+<div class="viewcode-block" id="compute_bvtv_d_seg">
+<a class="viewcode-back" href="../imutils.html#imutils.compute_bvtv_d_seg">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_bvtv_d_seg</span><span class="p">(</span><span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute BVTV from segmented images and from corrected BVTVd values for comparison</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bone</span>
+<span class="sd">    sample</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bone: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Compute BVTV and BVTVd&quot;</span><span class="p">)</span>
+    <span class="n">SEG</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">]</span>
+    <span class="n">SEG</span><span class="p">[</span><span class="n">SEG</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seg_voxels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">SEG</span><span class="p">[</span><span class="n">SEG</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">MASK</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">MASK</span><span class="p">[</span><span class="n">MASK</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">mask_voxels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">MASK</span><span class="p">[</span><span class="n">MASK</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTV_seg_compare&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seg_voxels</span> <span class="o">/</span> <span class="n">mask_voxels</span>
+
+    <span class="n">BVTVd_scaled</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVscaled&quot;</span><span class="p">]</span>
+    <span class="n">mean_BVTVd_corrected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">BVTVd_scaled</span><span class="p">[</span><span class="n">BVTVd_scaled</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">BVTVd_raw</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVraw&quot;</span><span class="p">]</span>
+    <span class="n">mean_BVTVd_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">BVTVd_raw</span><span class="p">[</span><span class="n">BVTVd_raw</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTV_seg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seg_voxels</span> <span class="o">/</span> <span class="n">mask_voxels</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTVd_scaled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_BVTVd_corrected</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BVTVd_raw&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean_BVTVd_raw</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+
+
+<div class="viewcode-block" id="fab2vtk_fromdict">
+<a class="viewcode-back" href="../imutils.html#imutils.fab2vtk_fromdict">[docs]</a>
+<span class="k">def</span> <span class="nf">fab2vtk_fromdict</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">abq_dict</span><span class="p">):</span>
+    <span class="c1"># write vtk files for each eigenvector</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">vtkname</span> <span class="o">=</span> <span class="n">ext</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;_FABmin.vtk&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">vtkname</span> <span class="o">=</span> <span class="n">ext</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;_FABmid.vtk&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">vtkname</span> <span class="o">=</span> <span class="n">ext</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;_FABmax.vtk&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">vtkname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vtkFile</span><span class="p">:</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# vtk DataFile Version 2.0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Reconstructed Lagrangian Field Data</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ASCII</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;DATASET UNSTRUCTURED_GRID</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">POINTS &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot; float</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">centroid</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;centroid&quot;</span><span class="p">]</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">]</span>
+                <span class="n">mm</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;mm&quot;</span><span class="p">]</span>
+
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">centroid</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;centroid&quot;</span><span class="p">]</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">]</span>
+                <span class="n">mm</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;mm&quot;</span><span class="p">]</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># ? was 0</span>
+                    <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">centroid</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">mm</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">CELLS &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s2">&quot;2 &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">count</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="o">+</span><span class="mi">1</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">CELL_TYPES &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;3</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">CELL_DATA &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;scalars DOA_max float</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;LOOKUP_TABLE default</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">]</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">m</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;scalars PHIc float</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;LOOKUP_TABLE default</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">PHIc</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;PHIc&quot;</span><span class="p">]</span>
+                    <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">PHIc</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;scalars PHIt float</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;LOOKUP_TABLE default</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">PHIt</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;PHIt&quot;</span><span class="p">]</span>
+                    <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">PHIt</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;scalars PHI float</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;LOOKUP_TABLE default</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">PHI</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;PHI&quot;</span><span class="p">]</span>
+                    <span class="n">vtkFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">PHI</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot; ... vtk file written: &quot;</span> <span class="o">+</span> <span class="n">vtkname</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="quiver_3d_MSL">
+<a class="viewcode-back" href="../imutils.html#imutils.quiver_3d_MSL">[docs]</a>
+<span class="k">def</span> <span class="nf">quiver_3d_MSL</span><span class="p">(</span><span class="nb">eval</span><span class="p">,</span> <span class="n">evect</span><span class="p">,</span> <span class="n">cogs</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="n">cmap</span> <span class="o">=</span> <span class="s2">&quot;viridis&quot;</span>
+    <span class="k">if</span> <span class="nb">eval</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="nb">eval</span> <span class="o">-</span> <span class="nb">eval</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="nb">eval</span><span class="o">.</span><span class="n">ptp</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">eval</span><span class="p">)</span>  <span class="c1"># or some other appropriate value</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span>
+        <span class="n">cogs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">cogs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">cogs</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">evect</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">evect</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">evect</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">q</span><span class="o">.</span><span class="n">set_edgecolor</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">q</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="plot_MSL_fabric_spline">
+<a class="viewcode-back" href="../imutils.html#imutils.plot_MSL_fabric_spline">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_MSL_fabric_spline</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">abq_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+    <span class="n">n_elems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">cogs_plot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_elems</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evect1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_elems</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evect2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_elems</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evect3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_elems</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">eval1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_elems</span><span class="p">)</span>
+    <span class="n">eval2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_elems</span><span class="p">)</span>
+    <span class="n">eval3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_elems</span><span class="p">)</span>
+
+    <span class="n">elems</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">elems</span><span class="p">):</span>
+        <span class="n">cogs_plot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;centroid&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;centroid&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;centroid&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">]</span>
+        <span class="n">evect1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;mm&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">evect2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;mm&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">evect3</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;mm&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">eval1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">eval2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">eval3</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_dict</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="s2">&quot;m&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">savepath</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">feadir</span><span class="p">)</span>
+        <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+        <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">quiver_3d_MSL</span><span class="p">(</span><span class="n">eval1</span><span class="p">,</span> <span class="n">evect1</span><span class="p">,</span> <span class="n">cogs_plot</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">savepath</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;_MSL_1.png&quot;</span><span class="p">)</span>
+    <span class="n">quiver_3d_MSL</span><span class="p">(</span><span class="n">eval2</span><span class="p">,</span> <span class="n">evect2</span><span class="p">,</span> <span class="n">cogs_plot</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">savepath</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;_MSL_2.png&quot;</span><span class="p">)</span>
+    <span class="n">quiver_3d_MSL</span><span class="p">(</span><span class="n">eval3</span><span class="p">,</span> <span class="n">evect3</span><span class="p">,</span> <span class="n">cogs_plot</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">savepath</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;_MSL_3.png&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

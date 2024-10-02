@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>io_utils &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">io_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for io_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">socket</span> <span class="kn">import</span> <span class="n">gethostname</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">OmegaConf</span>
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="ext">
+<a class="viewcode-back" href="../io_utils.html#io_utils.ext">[docs]</a>
+<span class="k">def</span> <span class="nf">ext</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">new_ext</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Changes the file extension.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">filename</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">new_ext</span></div>
+
+
+
+<div class="viewcode-block" id="print_mem_usage">
+<a class="viewcode-back" href="../io_utils.html#io_utils.print_mem_usage">[docs]</a>
+<span class="k">def</span> <span class="nf">print_mem_usage</span><span class="p">():</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+    <span class="n">mem_info</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span>
+    <span class="n">mem_used_gb</span> <span class="o">=</span> <span class="n">mem_info</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># Convert bytes to GB</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Memory usage:&#39;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="si">}</span><span class="se">\t\t</span><span class="si">{</span><span class="n">mem_used_gb</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> (GB)&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="timeit">
+<a class="viewcode-back" href="../io_utils.html#io_utils.timeit">[docs]</a>
+<span class="k">def</span> <span class="nf">timeit</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">timed</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">te</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">ts</span>
+        <span class="c1"># modify &#39;30&#39; if the function name is longer</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">method</span><span class="o">.</span><span class="vm">__name__</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}</span><span class="se">\t\t</span><span class="si">{</span><span class="n">te</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> (s)&quot;</span><span class="p">)</span>
+        <span class="n">print_mem_usage</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">timed</span></div>
+
+
+
+<div class="viewcode-block" id="log_append_processingtime">
+<a class="viewcode-back" href="../io_utils.html#io_utils.log_append_processingtime">[docs]</a>
+<span class="k">def</span> <span class="nf">log_append_processingtime</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="n">SUMname</span> <span class="o">=</span> <span class="n">filename</span>
+    <span class="n">time_summary</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;Summary Processing Time&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Full processing time           : </span><span class="si">{:.3f}</span><span class="s2"> [s]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="p">),</span>
+            <span class="s2">&quot;****************************************************************&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">time_summary</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">SUMname</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sumUpdate</span><span class="p">:</span>
+        <span class="n">sumUpdate</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sumUpdate</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time_summary</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... added processing time to summary file&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="write_timing_summary">
+<a class="viewcode-back" href="../io_utils.html#io_utils.write_timing_summary">[docs]</a>
+<span class="k">def</span> <span class="nf">write_timing_summary</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes a summary of processing times for all samples in config</span>
+<span class="sd">    to summaries folder.</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path    path to store (summaries)</span>
+<span class="sd">    time    dict with full processing time and simulation processing time</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    writes txt file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># file_path with pathlib from confing</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">sumdir</span><span class="p">)</span>
+        <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">_processing_time_summary.csv&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="set_filenames">
+<a class="viewcode-back" href="../io_utils.html#io_utils.set_filenames">[docs]</a>
+<span class="k">def</span> <span class="nf">set_filenames</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">pipeline</span><span class="o">=</span><span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="n">origaim_separate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set filenames for each grayscale file.</span>
+<span class="sd">    Filenames depend on pipeline (fast/accurate).</span>
+<span class="sd">    Always:</span>
+<span class="sd">    - native image for header</span>
+<span class="sd">    - BMD or Native image croppped to ROI</span>
+<span class="sd">    additional for fast pipeline:</span>
+<span class="sd">    - periosteal mask</span>
+<span class="sd">    additional for accurate pipeline:</span>
+<span class="sd">    - trabecular mask</span>
+<span class="sd">    - cortical mask</span>
+<span class="sd">    - two-phase segmentation</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Always, not depending on nphase</span>
+    <span class="n">current_version</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span>
+    <span class="n">folder_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+    <span class="n">feadir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">feadir</span><span class="p">)</span> <span class="o">/</span> <span class="n">folder</span>
+    <span class="n">aimdir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">aimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">folder</span>
+    <span class="n">origaimdir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">folder</span>
+
+    <span class="n">filename_postfix_bmd</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_bmd</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEBMD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_bmd</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">origaim_separate</span><span class="p">:</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEGRAY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.AIM&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEGRAY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEBMD&quot;</span><span class="p">]</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;RAWname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEGRAY&quot;</span><span class="p">])</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;BMDname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEBMD&quot;</span><span class="p">])</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;boundary_conditions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">boundary_conditions</span>
+
+    <span class="c1"># additional for fast pipeline</span>
+    <span class="k">if</span> <span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span><span class="p">:</span>
+        <span class="n">filename_postfix_mask</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_mask</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_mask</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;MASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Additionl for accurate pipeline</span>
+    <span class="k">if</span> <span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+        <span class="n">filename_postfix_trab_mask</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_trab_mask</span>
+        <span class="n">filename_postfix_cort_mask</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_cort_mask</span>
+        <span class="n">filename_postfix_seg</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_seg</span>
+
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKCORT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_cort_mask</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKTRAB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_trab_mask</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILESEG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_seg</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;CORTMASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKCORT&quot;</span><span class="p">])</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;TRABMASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKTRAB&quot;</span><span class="p">])</span>
+        <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;SEGname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILESEG&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">mask_separate</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">filename_postfix_mask</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_mask</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}{</span><span class="n">filename_postfix_mask</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;MASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">]</span>
+
+    <span class="c1"># General filenames</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">filename</span><span class="p">[</span><span class="s2">&quot;BMDname&quot;</span><span class="p">])</span>
+    <span class="n">new_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">.inp&quot;</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;INPname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">feadir</span><span class="p">)</span> <span class="o">/</span> <span class="n">new_filename</span><span class="p">)</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;VTKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">aimdir</span><span class="p">)</span> <span class="o">/</span> <span class="n">new_filename</span><span class="p">)</span>
+
+    <span class="n">new_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">_summary.txt&quot;</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;SUMname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">feadir</span><span class="p">)</span> <span class="o">/</span> <span class="n">new_filename</span><span class="p">)</span>
+
+    <span class="n">new_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">_BPVb&quot;</span>
+    <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;VER_BPVname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">feadir</span><span class="p">)</span> <span class="o">/</span> <span class="n">new_filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filename</span></div>
+
+
+
+<div class="viewcode-block" id="hydra_update_cfg_key">
+<a class="viewcode-back" href="../io_utils.html#io_utils.hydra_update_cfg_key">[docs]</a>
+<span class="k">def</span> <span class="nf">hydra_update_cfg_key</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="c1"># Make the config mutable</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">set_struct</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Split the key and access each level of the configuration separately</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">keys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="c1"># Make the config read-only again</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">set_struct</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="log_summary">
+<a class="viewcode-back" href="../io_utils.html#io_utils.log_summary">[docs]</a>
+<span class="k">def</span> <span class="nf">log_summary</span><span class="p">(</span><span class="n">bone</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="c1"># bone</span>
+    <span class="c1"># BMD_array = bone[&quot;BMD_array&quot;]</span>
+    <span class="c1"># Slope = bone[&quot;Slope&quot;]</span>
+    <span class="c1"># Intercept = bone[&quot;Intercept&quot;]</span>
+    <span class="c1"># Spacing = bone[&quot;Spacing&quot;]</span>
+    <span class="c1"># Scaling = bone[&quot;Scaling&quot;]</span>
+    <span class="c1"># elems = bone[&quot;elems&quot;]</span>
+    <span class="c1"># elems_bone = bone[&quot;elems_bone&quot;]</span>
+    <span class="c1"># FEelSize = bone[&quot;FEelSize&quot;]</span>
+    <span class="c1"># marray = bone[&quot;marray&quot;]</span>
+    <span class="c1"># mmarray1 = bone[&quot;mmarray1&quot;]</span>
+    <span class="c1"># mmarray2 = bone[&quot;mmarray2&quot;]</span>
+    <span class="c1"># mmarray3 = bone[&quot;mmarray3&quot;]</span>
+
+    <span class="c1"># # config</span>
+    <span class="c1"># SCA1 = config[&quot;sca1&quot;]</span>
+    <span class="c1"># SCA2 = config[&quot;sca2&quot;]</span>
+    <span class="c1"># KMAX = config[&quot;kmax&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># # PSL</span>
+    <span class="c1"># mode_ghost_layer = config[&quot;mode_ghost_layer&quot;]</span>
+    <span class="c1"># n_ghost_proximal = config[&quot;padding_elements_proximal&quot;]</span>
+    <span class="c1"># n_ghost_distal = config[&quot;padding_elements_distal&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># # filenames</span>
+    <span class="c1"># BMDname = filenames[&quot;BMDname&quot;]</span>
+    <span class="c1"># SUMname = filenames[&quot;SUMname&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># # Variables</span>
+    <span class="c1"># mean_BMD = var[&quot;mean_BMD&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1"># BVTV_tissue = var[&quot;BVTV_tissue&quot;]</span>
+    <span class="c1"># mask_volume_MASK = var[&quot;Mask_Volume_MASK&quot;]</span>
+    <span class="c1"># mask_volume_FE = var[&quot;Mask_Volume_FE&quot;]</span>
+    <span class="c1"># mask_volume_quality = var[&quot;Volume_ratio&quot;]</span>
+    <span class="c1"># BV_tissue = var[&quot;BV_tissue&quot;]</span>
+    <span class="c1"># BVTV_FE_tissue_ROI = var[&quot;simulation_BVTV_FE_tissue_ROI&quot;]</span>
+    <span class="c1"># BVTV_FE_tissue_ELEM = var[&quot;simulation_BVTV_FE_tissue_ELEM&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># BVTV_FE_elements_ROI = var[&quot;simulation_BVTV_FE_elements_ROI&quot;]</span>
+    <span class="c1"># BVTV_FE_elements_ELEM = var[&quot;simulation_BVTV_FE_elements_ELEM&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># BVTV_quality_ROI = var[&quot;BVTV_ratio_ROI&quot;]</span>
+    <span class="c1"># BVTV_quality_ELEM = var[&quot;BVTV_ratio_ELEM&quot;]</span>
+    <span class="c1">#</span>
+    <span class="c1"># BMC_tissue = var[&quot;BMC_tissue&quot;]</span>
+    <span class="c1"># BMC_FE_tissue_ROI = var[&quot;simulation_BMC_FE_tissue_ROI&quot;]</span>
+    <span class="c1"># BMC_FE_tissue_ELEM = var[&quot;simulation_BMC_FE_tissue_ELEM&quot;]</span>
+    <span class="c1"># BMC_quality_ROI = var[&quot;BMC_ratio_ROI&quot;]</span>
+    <span class="c1"># BMC_quality_ELEM = var[&quot;BMC_ratio_ELEM&quot;]</span>
+    <span class="c1"># # bone[&#39;&#39;]</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">******************************************************************</span>
+<span class="sd">**                         SUMMARY FILE                         **</span>
+<span class="sd">**                hFE pipeline Denis Schenk 2018                **</span>
+<span class="sd">******************************************************************&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;File                 : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filenames</span><span class="p">[</span><span class="s2">&quot;BMDname&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;System computed on   : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gethostname</span><span class="p">()),</span>
+            <span class="s2">&quot;Simulation Type      : Fast model (one phase / isotropic)&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Fitting Variables    : </span><span class="si">{:.2f}</span><span class="s2"> | </span><span class="si">{:.2f}</span><span class="s2"> | </span><span class="si">{:.3f}</span><span class="s2"> |&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sca1&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sca2&quot;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;kmax&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;*****************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Patient specific loading&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-------------------------------------------------------------------&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Ghost layer mode     : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;mode_ghost_layer&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Ghost layers prox.   : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;padding_elements_proximal&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Ghost layers dist.   : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;padding_elements_distal&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;*****************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Image Dimension      : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMD_array&quot;</span><span class="p">])),</span>
+            <span class="s2">&quot;Scaling              : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Scaling&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Slope                : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Slope&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Intercept            : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Intercept&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Spacing              : </span><span class="si">{:.3f}</span><span class="s2">, </span><span class="si">{:.3f}</span><span class="s2">, </span><span class="si">{:.3f}</span><span class="s2"> mm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;FE element size      : </span><span class="si">{:.3f}</span><span class="s2">, </span><span class="si">{:.3f}</span><span class="s2">, </span><span class="si">{:.3f}</span><span class="s2"> mm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;Number of elements   : </span><span class="si">{:d}</span><span class="s2"> + </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elems_bone&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elems&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elems_bone&quot;</span><span class="p">])</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Variables computed from scaled BMD image and original masks&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-------------------------------------------------------------------&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;*BMD*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CORT                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_mean_BMD_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TRAB                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_mean_BMD_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TOT                  : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_mean_BMD_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;*BMC*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CORT                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_mean_BMC_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TRAB                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_mean_BMC_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TOT                  : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_mean_BMC_image&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;*MASK Volumes*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CORT                 : </span><span class="si">{:.2f}</span><span class="s2"> mm^3&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;Mask_Volume_CORTMASK&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TRAB                 : </span><span class="si">{:.2f}</span><span class="s2"> mm^3&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;Mask_Volume_TRABMASK&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;TOT                  : </span><span class="si">{:.2f}</span><span class="s2"> mm^3&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;Mask_Volume_MASK&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Variables computed from elememnt values - original, without BMC conversion&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-------------------------------------------------------------------&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;*BMC*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CORT                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_simulation_BMC_FE_tissue_orig_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;TRAB                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_simulation_BMC_FE_tissue_orig_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;TOT                  : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_simulation_BMC_FE_tissue_orig_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Variables computed from elememnt values - corrected, with BMC conversion&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-------------------------------------------------------------------&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;*BMC*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;CORT                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_simulation_BMC_FE_tissue_orig_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;TRAB                 : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_simulation_BMC_FE_tissue_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;TOT                  : </span><span class="si">{:.2f}</span><span class="s2"> mgHA/ccm&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_simulation_BMC_FE_tissue_ROI&quot;</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Summary Benchmark Tests&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-------------------------------------------------------------------&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;*without BMC conversion*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC CORT             : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_BMC_ratio_orig_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;BMC TRAB             : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_BMC_ratio_orig_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;BMC TOT              : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_BMC_ratio_orig_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;*with BMC conversion*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;BMC CORT             : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORT_BMC_ratio_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;BMC TRAB             : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRAB_BMC_ratio_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;BMC TOT              : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOT_BMC_ratio_ROI&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;*Volumes&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Mask volume CORT     : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;CORTVolume_ratio&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Mask volume TRAB     : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TRABVolume_ratio&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;Mask volume TOT      : </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;TOTVolume_ratio&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+            <span class="c1"># &quot;Apparent variables computed from original BMD, BVTV images and mask&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;*CORT*&quot;,</span>
+            <span class="c1"># &quot;Apparent BMD grays.  : {:.2f} mgHA/ccm&quot;.format(var[&#39;CORT_mean_BMD&#39;]),</span>
+            <span class="c1"># &quot;Apparent BVTV grays. : {:.3f} %&quot;.format(var[&#39;CORT_BVTV_tissue&#39;] * 100.0),</span>
+            <span class="c1"># &quot;Apparent BMC grays.  : {:.1f} mgHA&quot;.format(var[&#39;CORT_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;Apparent BV grays.   : {:.1f} mm^3&quot;.format(var[&#39;CORT_BV_tissue&#39;]),</span>
+            <span class="c1"># &quot;*TRAB*&quot;,</span>
+            <span class="c1"># &quot;Apparent BMD grays.  : {:.2f} mgHA/ccm&quot;.format(var[&#39;TRAB_mean_BMD&#39;]),</span>
+            <span class="c1"># &quot;Apparent BVTV grays. : {:.3f} %&quot;.format(var[&#39;TRAB_BVTV_tissue&#39;] * 100.0),</span>
+            <span class="c1"># &quot;Apparent BMC grays.  : {:.1f} mgHA&quot;.format(var[&#39;TRAB_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;Apparent BV grays.   : {:.1f} mm^3&quot;.format(var[&#39;TRAB_BV_tissue&#39;]),</span>
+            <span class="c1"># &quot;*TOT*&quot;,</span>
+            <span class="c1"># &quot;Apparent BMD grays.  : {:.2f} mgHA/ccm&quot;.format(var[&#39;TOT_mean_BMD&#39;]),</span>
+            <span class="c1"># &quot;Apparent BVTV grays. : {:.3f} %&quot;.format(var[&#39;TOT_BVTV_tissue&#39;] * 100.0),</span>
+            <span class="c1"># &quot;Apparent BMC grays.  : {:.1f} mgHA&quot;.format(var[&#39;TOT_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;Apparent BV grays.   : {:.1f} mm^3&quot;.format(var[&#39;TOT_BV_tissue&#39;]),</span>
+            <span class="c1"># &quot;******************************************************************&quot;,</span>
+            <span class="c1"># &quot;Volumes of mask&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;*CORT*&quot;,</span>
+            <span class="c1"># &quot;Mask Volume image    : {:.1f} mm^3&quot;.format(var[&#39;Mask_Volume_CORTMASK&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume FE mesh  : {:.1f} mm^3&quot;.format(var[&#39;CORTMask_Volume_FE&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume ratio    : {:.3f} &quot;.format(var[&#39;CORTVolume_ratio&#39;]),</span>
+            <span class="c1"># &quot;*TRAB*&quot;,</span>
+            <span class="c1"># &quot;Mask Volume image    : {:.1f} mm^3&quot;.format(var[&#39;Mask_Volume_TRABMASK&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume FE mesh  : {:.1f} mm^3&quot;.format(var[&#39;TRABMask_Volume_FE&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume ratio    : {:.3f} &quot;.format(var[&#39;TRABVolume_ratio&#39;]),</span>
+            <span class="c1"># &quot;*TOT*&quot;,</span>
+            <span class="c1"># &quot;Mask Volume image    : {:.1f} mm^3&quot;.format(var[&#39;Mask_Volume_MASK&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume FE mesh  : {:.1f} mm^3&quot;.format(var[&#39;CORTMask_Volume_FE&#39;]+var[&#39;TRABMask_Volume_FE&#39;]),</span>
+            <span class="c1"># &quot;Mask Volume ratio    : {:.3f} &quot;.format(var[&#39;TOTVolume_ratio&#39;]),</span>
+            <span class="c1"># &quot;******************************************************************&quot;,</span>
+            <span class="c1"># &quot;BVTV&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;*CORT*&quot;,</span>
+            <span class="c1"># &quot;BVTV tissue           : {:.2f} %&quot;.format(var[&#39;CORT_BVTV_tissue&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE tissue ROI    : {:.2f} %&quot;.format(var[&#39;CORT_simulation_BVTV_FE_tissue_ROI&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE tissue ELEM   : {:.2f} %&quot;.format(var[&#39;CORT_simulation_BVTV_FE_tissue_ELEM&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE elements ROI  : {:.2f} %&quot;.format(var[&#39;CORT_simulation_BVTV_FE_elements_ROI&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE elements ELEM : {:.2f} %&quot;.format(var[&#39;CORT_simulation_BVTV_FE_elements_ELEM&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV ratio ROI        : {:.3f} &quot;.format(var[&#39;CORT_BVTV_ratio_ROI&#39;]),</span>
+            <span class="c1"># &quot;BVTV ratio ELEM       : {:.3f} &quot;.format(var[&#39;CORT_BVTV_ratio_ELEM&#39;]),</span>
+            <span class="c1"># &quot;*TRAB*&quot;,</span>
+            <span class="c1"># &quot;BVTV tissue           : {:.2f} %&quot;.format(var[&#39;TRAB_BVTV_tissue&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE tissue ROI    : {:.2f} %&quot;.format(var[&#39;TRAB_simulation_BVTV_FE_tissue_ROI&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE tissue ELEM   : {:.2f} %&quot;.format(var[&#39;TRAB_simulation_BVTV_FE_tissue_ELEM&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE elements ROI  : {:.2f} %&quot;.format(var[&#39;TRAB_simulation_BVTV_FE_elements_ROI&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV FE elements ELEM : {:.2f} %&quot;.format(var[&#39;TRAB_simulation_BVTV_FE_elements_ELEM&#39;] * 100.0),</span>
+            <span class="c1"># &quot;BVTV ratio ROI        : {:.3f} &quot;.format(var[&#39;TRAB_BVTV_ratio_ROI&#39;]),</span>
+            <span class="c1"># &quot;BVTV ratio ELEM       : {:.3f} &quot;.format(var[&#39;TRAB_BVTV_ratio_ELEM&#39;]),</span>
+            <span class="c1"># &quot;******************************************************************&quot;,</span>
+            <span class="c1"># &quot;BMC&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;*CORT*&quot;,</span>
+            <span class="c1"># &quot;BMC tissue            : {:.1f} mgHA&quot;.format(var[&#39;CORT_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ROI     : {:.1f} mgHA&quot;.format(var[&#39;CORT_simulation_BMC_FE_tissue_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ELEM    : {:.1f} mgHA&quot;.format(var[&#39;CORT_simulation_BMC_FE_tissue_ELEM&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ROI         : {:.3f} &quot;.format(var[&#39;CORT_BMC_ratio_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ELEM        : {:.3f} &quot;.format(var[&#39;CORT_BMC_ratio_ELEM&#39;]),</span>
+            <span class="c1"># &quot;*TRAB*&quot;,</span>
+            <span class="c1"># &quot;BMC tissue            : {:.1f} mgHA&quot;.format(var[&#39;TRAB_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ROI     : {:.1f} mgHA&quot;.format(var[&#39;TRAB_simulation_BMC_FE_tissue_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ELEM    : {:.1f} mgHA&quot;.format(var[&#39;TRAB_simulation_BMC_FE_tissue_ELEM&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ROI         : {:.3f} &quot;.format(var[&#39;TRAB_BMC_ratio_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ELEM        : {:.3f} &quot;.format(var[&#39;TRAB_BMC_ratio_ELEM&#39;]),</span>
+            <span class="c1"># &quot;*TOT*&quot;,</span>
+            <span class="c1"># &quot;BMC tissue            : {:.1f} mgHA&quot;.format(var[&#39;TOT_BMC_tissue&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ROI     : {:.1f} mgHA&quot;.format(var[&#39;TOT_simulation_BMC_FE_tissue_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC FE tissue ELEM    : {:.1f} mgHA&quot;.format(var[&#39;TOT_simulation_BMC_FE_tissue_ELEM&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ROI         : {:.3f} &quot;.format(var[&#39;TOT_BMC_ratio_ROI&#39;]),</span>
+            <span class="c1"># &quot;BMC ratio ELEM        : {:.3f} &quot;.format(var[&#39;TOT_BMC_ratio_ELEM&#39;]),</span>
+            <span class="c1"># &quot;******************************************************************&quot;,</span>
+            <span class="c1"># &quot;Average anisotropy&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;Eigenvalues (max, mid, min)    : {0} {1} {2}&quot;.format(*marray),</span>
+            <span class="c1"># &quot;Degree of anisotropy (max/min) : {:.3f}&quot;.format(marray[0] / marray[2]),</span>
+            <span class="c1"># &quot;Eigenvector max (x,y,z)        : {}&quot;.format(mmarray1),</span>
+            <span class="c1"># &quot;Eigenvector mid (x,y,z)        : {}&quot;.format(mmarray2),</span>
+            <span class="c1"># &quot;Eigenvector min (x,y,z)        : {}&quot;.format(mmarray3),</span>
+            <span class="c1"># &quot;******************************************************************&quot;,</span>
+            <span class="c1"># &quot;Summary Benchmark Tests&quot;,</span>
+            <span class="c1"># &quot;-------------------------------------------------------------------&quot;,</span>
+            <span class="c1"># &quot;Benchmark tests compare variables computed from the full volume&quot;,</span>
+            <span class="c1"># &quot;against variables computed from the FE elements&quot;,</span>
+            <span class="c1"># # &quot;Volume Image/Subvolumes        : {:.3f}&quot;.format(mask_volume_quality),</span>
+            <span class="c1"># # &quot;BVTV ROI Image/Subvolumes      : {:.3f}&quot;.format(BVTV_quality_ROI),</span>
+            <span class="c1"># # &quot;BVTV ELEM Image/Subvolumes     : {:.3f}&quot;.format(BVTV_quality_ELEM),</span>
+            <span class="c1"># # &quot;BMC ROI Image/Subvolumes       : {:.3f}&quot;.format(BMC_quality_ROI),</span>
+            <span class="c1"># # &quot;BMC ELEM Image/Subvolumes      : {:.3f}&quot;.format(BMC_quality_ELEM),</span>
+            <span class="s2">&quot;******************************************************************&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filenames</span><span class="p">[</span><span class="s2">&quot;SUMname&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sumFile</span><span class="p">:</span>
+        <span class="n">sumFile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="FileConfig">
+<a class="viewcode-back" href="../io_utils.html#io_utils.FileConfig">[docs]</a>
+<span class="k">class</span> <span class="nc">FileConfig</span><span class="p">:</span>
+<div class="viewcode-block" id="FileConfig.__init__">
+<a class="viewcode-back" href="../io_utils.html#io_utils.FileConfig.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="n">origaim_separate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="n">sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">=</span> <span class="n">pipeline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origaim_separate</span> <span class="o">=</span> <span class="n">origaim_separate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_version</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">current_version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder_id</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feadir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">feadir</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aimdir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">aimdir</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">origaimdir</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_postfix_bmd</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_bmd</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_bmd</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">filename_postfix_bmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_gray</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaim_separate</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.AIM&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_bmd</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">raw_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_gray</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bmd_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_bmd</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">boundary_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">boundary_conditions</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">mask_separate</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_mask</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_mask_cort</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_cort_mask</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_mask_trab</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_trab_mask</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">file_seg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">filenames</span><span class="o">.</span><span class="n">filename_postfix_seg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cort_mask_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask_cort</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask_cort</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">trab_mask_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask_trab</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_mask_trab</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">seg_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_seg</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">origaimdir</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_seg</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inp_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feadir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">.inp&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">vtk_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aimdir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">.inp&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sum_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feadir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">_summary.txt&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ver_bpv_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feadir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="si">}</span><span class="s2">_V_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_version</span><span class="si">}</span><span class="s2">_BPVb&quot;</span>
+
+<div class="viewcode-block" id="FileConfig.set_filenames">
+<a class="viewcode-back" href="../io_utils.html#io_utils.FileConfig.set_filenames">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;FILEBMD&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_bmd</span><span class="p">),</span>
+            <span class="s2">&quot;FILEGRAY&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_gray</span><span class="p">),</span>
+            <span class="s2">&quot;RAWname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_name</span><span class="p">),</span>
+            <span class="s2">&quot;BMDname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bmd_name</span><span class="p">),</span>
+            <span class="s2">&quot;boundary_conditions&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">boundary_conditions</span><span class="p">,</span>
+            <span class="s2">&quot;INPname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inp_name</span><span class="p">),</span>
+            <span class="s2">&quot;VTKname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vtk_name</span><span class="p">),</span>
+            <span class="s2">&quot;SUMname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sum_name</span><span class="p">),</span>
+            <span class="s2">&quot;VER_BPVname&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ver_bpv_name</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span><span class="p">:</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_mask</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;MASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKCORT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_mask_cort</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASKTRAB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_mask_trab</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILESEG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_seg</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;CORTMASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cort_mask_name</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;TRABMASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trab_mask_name</span><span class="p">)</span>
+            <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;SEGname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seg_name</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">mask_separate</span><span class="p">:</span>
+                <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;FILEMASK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_mask</span><span class="p">)</span>
+                <span class="n">filename</span><span class="p">[</span><span class="s2">&quot;MASKname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">filename</span></div>
+</div>
+
+
+    <span class="c1"># Usage</span>
+    <span class="c1"># cfg = ...  # Your configuration object</span>
+    <span class="c1"># sample = &quot;sample_name&quot;</span>
+    <span class="c1"># file_config = FileConfig(cfg, sample)</span>
+    <span class="c1"># print(file_config.bmd_name)</span>
+    <span class="c1"># print(file_config.inp_name)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

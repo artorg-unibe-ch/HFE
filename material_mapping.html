@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>material_mapping module &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="preprocessing module" href="preprocessing.html" />
+    <link rel="prev" title="hfe_accurate_pipeline module" href="hfe_accurate_pipeline.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pipeline_runner.html">pipeline_runner module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aim2fe.html">aim2fe module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_loadcases.html">create_loadcases module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation.html">simulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="write_abaqus.html">write_abaqus module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hfe_accurate_pipeline.html">hfe_accurate_pipeline module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">material_mapping module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocessing.html">preprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="postprocessing.html">postprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_normals_cortex.html">project_normals_cortex module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_voxel_indices.html">struct_voxel_indices module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="surface_nets.html">surface_nets module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="check_props_recovery.html">check_props_recovery module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="f_decomposition.html">f_decomposition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imutils.html">imutils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_utils.html">io_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odb2vtk_wrapper.html">odb2vtk_wrapper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="print_optim_report.html">print_optim_report module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="read_mech_params.html">read_mech_params module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Getting Started</a></li>
+      <li class="breadcrumb-item active">material_mapping module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/material_mapping.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="material-mapping-module">
+<h1>material_mapping module<a class="headerlink" href="#material-mapping-module" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__computePHI__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ROI</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__computePHI__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Compute the bone partial volume.</p>
+<p>Parameters:
+ROI (ndarray): The array containing the ROI of the image.</p>
+<p>Returns:
+PHI (float): The PHI value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__compute_eval_evect__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MSL_kernel_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BVseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__compute_eval_evect__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Computes Eigenvalues and Eigenvectors for a given element using MSL_kernel_list, which is a return value of
+preprocessing.compute_local_MSL (stored in bone: dict)</p>
+<p>Can be used for cortical or trabecular phase. Note that for cortical phase projection = True!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>MSL_kernel_list</strong> (<em>List with areaweighted dyadic products</em><em> of </em><em>triangulation</em><em>, </em><em>after kernel homogenization</em>)</p></li>
+<li><p><strong>phase</strong> (<em>BVseg               bone volume from segmentation for specific bone</em>)</p></li>
+<li><p><strong>main</strong> (<em>projection          Defines if projection</em><em> of </em><em>global Z on plane</em><em> of </em><em>MSL</em><em> (</em><em>used for cortical phase to have</em>) – orientation along cortical shell</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>eval                Eigenvalues</em></p></li>
+<li><p><em>evect               Eigenvectors</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__compute_eval_evect_projection__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_evect</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__compute_eval_evect_projection__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__get_fe_dims__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">FEelSize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Spacing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__get_fe_dims__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Helper function to retrieve same dimensions as FE mesh in Denis’ mesh construction
+Simone Poncioni, MSB, 17.08.2023</p>
+<p>Args:
+- img_shape (tuple): shape of the original image
+- FEelSize (float): size of the finite elements in the FE mesh –&gt; consistent with Denis’s mesh construction
+- Spacing (float): voxel spacing of the original image</p>
+<p>Returns:
+- MESH_centroids_mm (numpy.ndarray): array of centroids of each element in the FE mesh, in millimeters
+- FEdimX (int): dimension of the FE mesh in the X direction
+- FEdimY (int): dimension of the FE mesh in the Y direction
+- FEdimZ (int): dimension of the FE mesh in the Z direction
+- CoarseFactor (float): coarsening factor used to construct the FE mesh</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__get_masks__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VOI_mm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__get_masks__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">__material_mapping__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VOI_mm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SEG_correction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#__material_mapping__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Compartment agnostic material mapping function
+Simone Poncioni, MSB, 08.2023</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">_bmc_compensation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">BMD</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CORTMASK</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRABMASK</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cort_elms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trab_elms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RHOc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RHOt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PHIc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PHIt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">FEelSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BMC_conservation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#_bmc_compensation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p># BMC compensation for all BVTV values in order to conserve bone mass during homogenization</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">cai_evalues</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#cai_evalues"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Returns evalues of Cai et al. (2019) adapted for transverse isotropy.
+From human cortical bone of the proximal femur.
+<a class="reference external" href="https://doi.org/10.1016/j.actbio.2019.03.043">https://doi.org/10.1016/j.actbio.2019.03.043</a>
+:rtype: Evalues E1, E2, E3</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">calculate_bvtv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VOI_mm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cog</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#calculate_bvtv"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>POS, 06.02.2024
+Calculate the bone volume to total volume (BV/TV) ratio.</p>
+<p>This function calculates the BV/TV ratio, which is a measure of bone density.
+It does this by first calculating the region of interest (ROI) in the given 3D array (seg_array),
+then computing the bone partial volume (PHI), and finally computing the BV/TV ratio.</p>
+<p>Parameters:
+seg_array (np.array): The 3D array representing the segmented image.
+mask_array (np.array): The 3D array representing the mask image.
+spacing (np.array): The spacing between voxels in the 3D image.
+VOI_mm (float): The size of the Volume of Interest in millimeters.
+cog (np.array): The center of gravity of the FE element.</p>
+<p>Returns:
+tuple: A tuple containing the PHI and RHO values.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">compute_isoFAB</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#compute_isoFAB"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Returns isotropic fabric
+return [eval1, eval2, eval3], [evecxx, evecxy, evecxz], [evecyx, evecyy, evecyz], [eveczx, eveczy, eveczz]]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">correspondence_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centroids_mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">closest_phys_points</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#correspondence_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Creates a correspondence dictionary between physical points and centroids in the mesh.</p>
+<p>Args:
+- centroids_mesh (numpy.ndarray): array of centroids of each element in the mesh, in millimeters
+- closest_phys_points (numpy.ndarray): array of indices of the closest physical point for each centroid in the MSL kernel</p>
+<p>Returns:
+- correspondence_dict (dict): dictionary mapping each physical point index to its corresponding centroid in the mesh</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">getClosestPhysPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centroids_mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phys_points</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#getClosestPhysPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Finds the closest physical point to each centroid in the cortical mesh.
+You can then mask the physical points with this array to get the closest physical point for each centroid</p>
+<p>Args:
+- centroids_mesh (numpy.ndarray): array of centroids of each element in the cortical mesh, in millimeters (m, 3)
+- phys_points (numpy.ndarray): array of physical points, in millimeters (n, 3)</p>
+<p>Returns:
+- distances (numpy.ndarray): array of distances between each centroid and its closest physical point
+- indices (numpy.ndarray): array of indices of the closest physical point for each centroid</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">get_bone_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meshpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_mesh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#get_bone_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">material_mapping_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filenames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FileConfig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#material_mapping_spline"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Material Mapping, including PSL ghost padding layers as copy of most distal and proximal layers
+For accurate PSL pipeline
+Additionaly, the optional BMC conversion can be specified in config.yaml.
+This function will conserve BMC from image to hFE model to ensure, no mass conservation.</p>
+<p>Included new MSL fabric evaluation with separation between cortex and trabecular bone
+Version adapted for spline meshing algorithm (POS, 08.2023)</p>
+<p>Parameters:
+# ? add parameters</p>
+<p>Returns:
+# ? add returns</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">material_mapping.</span></span><span class="sig-name descname"><span class="pre">vectoronplane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evect_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evect_mid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evect_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/material_mapping.html#vectoronplane"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>evect_max</strong></p></li>
+<li><p><strong>evect_mid</strong></p></li>
+<li><p><strong>evect_min</strong></p></li>
+<li><p><strong>direction</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>3 numpy arrays in order evect min, evect mid, evect max</em></p></li>
+<li><p><em>evect_max_projected is computed by projection of direction (usually [0,0,1]) into the plane evect_max, evect_mid.</em></p></li>
+<li><p><em>evect_min_projected is orthogonal to max and mid, so computed from their cross product</em></p></li>
+<li><p><em>evect_mid_projected is orthogonal to max and min, so computed from their cross produc</em></p></li>
+<li><p><em>Old implementation</em></p></li>
+<li><p><em>normal = numpy.cross(evect_max, evect_mid)</em></p></li>
+<li><p><em>normalized = normal / numpy.linalg.norm(normal)</em></p></li>
+<li><p><em>evect_max_projected_normalized = (</em> – direction - numpy.dot(direction, normalized) * normalized</p></li>
+<li><p><em>)</em></p></li>
+<li><p><em>evect_max_projected = evect_max_projected_normalized * numpy.linalg.norm(evect_max)</em></p></li>
+<li><p><em>evect_min_projected = normalized</em></p></li>
+<li><p><em>evect_mid_projected = numpy.cross(evect_max_projected, normalized)</em></p></li>
+<li><p><em>evect_max_proj = direction - numpy.dot(direction, normal)</em></p></li>
+<li><p><strong>Projection acc. https</strong> (<em>//www.maplesoft.com/support/help/maple/view.aspx?path=MathApps%2FProjectionOfVectorOntoPlane</em>)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hfe_accurate_pipeline.html" class="btn btn-neutral float-left" title="hfe_accurate_pipeline module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="preprocessing.html" class="btn btn-neutral float-right" title="preprocessing module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

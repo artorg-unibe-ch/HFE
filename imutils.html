@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>imutils module &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="io_utils module" href="io_utils.html" />
+    <link rel="prev" title="f_decomposition module" href="f_decomposition.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pipeline_runner.html">pipeline_runner module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aim2fe.html">aim2fe module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_loadcases.html">create_loadcases module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation.html">simulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="write_abaqus.html">write_abaqus module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hfe_accurate_pipeline.html">hfe_accurate_pipeline module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="material_mapping.html">material_mapping module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocessing.html">preprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="postprocessing.html">postprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_normals_cortex.html">project_normals_cortex module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_voxel_indices.html">struct_voxel_indices module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="surface_nets.html">surface_nets module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="check_props_recovery.html">check_props_recovery module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="f_decomposition.html">f_decomposition module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">imutils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_utils.html">io_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odb2vtk_wrapper.html">odb2vtk_wrapper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="print_optim_report.html">print_optim_report module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="read_mech_params.html">read_mech_params module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Getting Started</a></li>
+      <li class="breadcrumb-item active">imutils module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/imutils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="imutils-module">
+<h1>imutils module<a class="headerlink" href="#imutils-module" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">AIMreader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileINname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#AIMreader"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Reads an AIM file and provides the corresponding VTK image along with spacing, calibration data, and header information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fileINname</strong> (<em>str</em>) – The filename of the AIM file to be read.</p></li>
+<li><p><strong>spacing</strong> (<em>numpy.ndarray</em>) – Initial spacing values for the image.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing the following elements:</dt><dd><ul class="simple">
+<li><p>imvtk (vtk.vtkImageData): The VTK image data.</p></li>
+<li><p>spacing (numpy.ndarray): The spacing between image slices.</p></li>
+<li><p>scaling (float or None): The scaling factor for the image, if available.</p></li>
+<li><p>slope (float or None): The slope used in the image, if available.</p></li>
+<li><p>intercept (float or None): The intercept used in the image, if available.</p></li>
+<li><p>header (list): The header information from the AIM file.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – If the AIM file format is not supported.</p>
+</dd>
+</dl>
+<p>This function performs the following operations:
+1. Reads the header of the AIM file to determine the format and version.
+2. Extracts necessary parameters such as spacing, scaling, slope, and intercept from the header.
+3. Calculates the spacing based on the original dimensions and scaling factor.
+4. Reads the AIM file using VTK and sets the appropriate data type and spacing.
+5. Returns the VTK image data along with the extracted parameters and header information.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">CropType</span></span><a class="reference internal" href="_modules/imutils.html#CropType"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__dict__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">mappingproxy({'__module__':</span> <span class="pre">'imutils',</span> <span class="pre">'expand':</span> <span class="pre">0,</span> <span class="pre">'crop':</span> <span class="pre">1,</span> <span class="pre">'variable':</span> <span class="pre">2,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'CropType'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'CropType'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__doc__':</span> <span class="pre">None,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'imutils'</span></em></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crop</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expand</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">variable</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">__adjust__img_size__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coarsefactor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#__adjust__img_size__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Images are adjusted according to CropType:
+0 = CropType.expand     (Expand image by copying layers)
+1 = CropType.crop       (Crop image)
+2 = CropType.variable   (Either crop or expand, depending on what includes less layers)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">__save_image_with_colorbar__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#__save_image_with_colorbar__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">adjust_image_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bone</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">croptype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#adjust_image_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Adjusts the image size to match the current finite element (FE) element size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Specifier for the type of image (e.g., “BMD”, “SEG”).</p></li>
+<li><p><strong>bone</strong> (<em>dict</em>) – Dictionary containing the image data and related parameters.</p></li>
+<li><p><strong>cfg</strong> (<em>dict</em>) – Configuration object containing meshing settings.</p></li>
+<li><p><strong>croptype</strong> (<em>CropType</em><em>, </em><em>optional</em>) – Type of cropping to apply. Defaults to CropType.crop.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated bone dictionary with adjusted image size and related parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<p>This function performs the following operations:
+1. Retrieves the image array and spacing from the bone dictionary.
+2. Calculates the coarsening factor based on the FE element size and CT voxel size.
+3. Adjusts the image size for BMD image and Mask.
+4. Handles specific adjustments for XCTI image resolution (82µm).
+5. Updates the bone dictionary with the original and adjusted image arrays, FE element size, and coarsening factor.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">compute_bvtv_d_seg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/imutils.html#compute_bvtv_d_seg"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Compute BVTV from segmented images and from corrected BVTVd values for comparison
+:param bone:
+:param sample:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bone</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">fab2vtk_fromdict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abq_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#fab2vtk_fromdict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">general_image_reader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#general_image_reader"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">get_AIM_ints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#get_AIM_ints"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Function by Glen L. Niebur, University of Notre Dame (2010)
+reads the integer data of an AIM file to find its header length</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">mha_header_reader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#mha_header_reader"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">numpy2vtk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imnp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#numpy2vtk"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>turns a numpy array into a vtk image data</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">pad_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_pad_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#pad_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Pads the input image with a constant value (background value) to
+increase its size.
+Padding is used to prevent having contours on the edges of the image,
+which would cause the spline fitting to fail.
+Padding is performed on the transverse plane only
+(image orientation is assumed to be z, y, x)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>SimpleITK.Image</em>) – The input image to be padded.</p></li>
+<li><p><strong>iso_pad_size</strong> (<em>int</em>) – The size of the padding to be added
+to each dimension.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The padded image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SimpleITK.Image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">plot_MSL_fabric_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abq_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#plot_MSL_fabric_spline"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">quiver_3d_MSL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evect</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cogs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#quiver_3d_MSL"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">read_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filenames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bone</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#read_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Reads an AIM image and stores it in the bone dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Specifier for the type of image (e.g., “BMD”, “SEG”).</p></li>
+<li><p><strong>filenames</strong> (<em>dict</em>) – Dictionary containing the filenames, including the key “&lt;name&gt;name” for the AIM image.</p></li>
+<li><p><strong>bone</strong> (<em>dict</em>) – Dictionary to store the image data and related parameters.</p></li>
+<li><p><strong>lock</strong> (<em>threading.Lock</em>) – Lock to ensure thread-safe operations on the bone dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated bone dictionary containing the numpy array of the AIM image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<p>This function performs the following operations:
+1. Reads the AIM image using the AIMreader function.
+2. Converts the AIM image to a numpy array.
+3. Pads the image to avoid non-zero values at the boundary.
+4. Updates the bone dictionary with the processed image array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">read_img_param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filenames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FileConfig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#read_img_param"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Reads image parameters from the AIM image header.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filenames</strong> (<em>dict</em>) – Dictionary containing the filenames, including the key “RAWname” for the raw AIM image.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The spacing between image slices.
+scaling (float): The scaling factor for the image.
+slope (float): The slope used in the image.
+intercept (float): The intercept used in the image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>spacing (np.ndarray(float))</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – If an error occurs while reading the AIM image.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">save_images_with_colorbar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bone</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#save_images_with_colorbar"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Saves images of arrays with or without colorbar.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<em>dict</em>) – Configuration dictionary containing paths and other parameters.</p></li>
+<li><p><strong>sample</strong> (<em>str</em>) – The sample identifier.</p></li>
+<li><p><strong>bone</strong> (<em>dict</em>) – Dictionary containing arrays to be saved as images.</p></li>
+</ul>
+</dd>
+</dl>
+<p>The function loops over the arrays in the bone dictionary and saves images.
+If the array is “BMD_array” or “SEG_array”, it uses the provided function
+to save the image with a colorbar. For other arrays, it saves the image without a colorbar.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">imutils.</span></span><span class="sig-name descname"><span class="pre">vtk2numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imvtk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/imutils.html#vtk2numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>turns a vtk image data into a numpy array</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="f_decomposition.html" class="btn btn-neutral float-left" title="f_decomposition module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="io_utils.html" class="btn btn-neutral float-right" title="io_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
