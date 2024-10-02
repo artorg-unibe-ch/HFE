@@ -1,6 +1,6 @@
 # Homogenised Finite Elements (HFE) pipeline
 
-[![DOI](https://zenodo.org/badge/787815968.svg)](https://zenodo.org/doi/10.5281/zenodo.13629159)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13879889.svg)](https://doi.org/10.5281/zenodo.13879889)
 
 [![Build Docker Container - gcc](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-gcc.yml)
 [![Build Docker Container - ifort](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml/badge.svg)](https://github.com/artorg-unibe-ch/HFE/actions/workflows/build-ifort.yml)
