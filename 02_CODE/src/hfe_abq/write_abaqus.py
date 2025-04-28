@@ -547,7 +547,7 @@ class AbaqusWriter:
             SDV30,
             SDV31,
             S,
-            LE,
+            E,
             COORD,
             SENER,
             ** HISTORY OUTPUT

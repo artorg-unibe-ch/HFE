@@ -20,6 +20,6 @@ filenames:
 
 version:
   verification_files: 1
-  current_version: 03_radius_coarser
+  current_version: 04_testumat
   site_bone: Radius                                                  # Radius / Tibia
 

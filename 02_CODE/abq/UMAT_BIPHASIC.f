@@ -414,7 +414,6 @@ C     RDY = 0.7D0+0.29D0*(PHIC/(PHIC+PHIT))
 C     Only for PYFL = 5
       RDY = 0.7D0
 C
-C     TO BE FITTED
 C     SCA1 stiffness parameters
 C     SCA2 strength parameters
       SCA1 = 1.0D0
@@ -432,30 +431,30 @@ C
             PBV  = PBVT
             BVTV = BVTVT
 C           ELASTICITY PARAMETERS TRABECULAR BONE
-            E0  = 8632.0D0
-            V0  = 0.234D0
-            MU0 = 3115.0D0
-            KS  = 1.6D0
-            LS  = 1.0D0
+            E0  = 10490.0D0
+            V0  = 0.2289D0
+            MU0 = 3350.0D0
+            KS  = 1.91D0
+            LS  = 1.10D0
 C           STRENGTH PARAMETERS TRABECULAR BONE
-            SIGD0P = 49.0D0
-            SIGD0N = 64.57D0
-            ZETA0  = 0.30D0
-            TAUD0  = 31.11D0
-            PP     = 1.50D0
-            QQ     = 0.71D0
+            SIGD0P = 62.01D0
+            SIGD0N = 78.58D0
+            ZETA0  = 0.28D0
+            TAUD0  = 31.83D0
+            PP     = 1.82D0
+            QQ     = 0.98D0
       ELSE IF (PBVC.GT.0.0D0.AND.PBVT.EQ.0.0D0) THEN
             PBV  = PBVC
             BVTV = BVTVC
 C           ELASTICITY PARAMETERS CORTICAL BONE
-            E0  = 16014.0D0
-            V0  = 0.34D0
-            MU0 = 5845.0D0
+            E0  = 15992.0D0
+            V0  = 0.3396D0
+            MU0 = 5846.0D0
             KS  = 1.0D0
             LS  = 1.0D0
 C           STRENGTH PARAMETERS CORTICAL BONE
-            SIGD0P = 71.2D0
-            SIGD0N = 124.5D0
+            SIGD0P = 71.0D0
+            SIGD0N = 124.2D0
             ZETA0  = 0.3D0 ! Range [0.3-0.49]
             TAUD0  = 41.3D0
             PP     = 1.0D0

@@ -51,7 +51,7 @@ loadcase:
   time_for_displacement: 1
   min_step_size: 0.0000000001
   max_step_size: 0.3
-  load_displacement: -0.35          # (mm)
+  load_displacement: -0.5          # (mm)
 
 abaqus:
   nlgeom: on                        # affects NLGEOM parameter in abaqus simulation (on/off)

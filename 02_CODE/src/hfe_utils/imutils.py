@@ -28,7 +28,8 @@ def vtk2numpy(imvtk):
     imnp = vtk_to_numpy(data)
     # vtk and numpy have different array conventions
     imnp = imnp.reshape(dim[2], dim[1], dim[0])
-    imnp = imnp.transpose(2, 1, 0)
+    # ! deactivated 21.01.25 for single-section! (POS)
+    # imnp = imnp.transpose(2, 1, 0)
     return imnp
 
 
@@ -425,6 +426,15 @@ def read_image(name, filenames, bone, lock):
         print("Removing 10 slices")
         IMG_pad = IMG_pad[5:-10, :, :]
         print(IMG_pad.GetSize())
+    elif "C0003102" in filenames.sample:
+        # This was originally 5-stacks
+        IMG_pad = IMG_pad[186:, :, :]
+        print(IMG_pad.GetSize())
+    else:
+        # many images have some growth plate at the distal boundary
+        # IMG_pad = IMG_pad[:, :, :]
+        IMG_pad = IMG_pad[:-30, :, :]
+        pass
 
     IMG_array = sitk.GetArrayFromImage(IMG_pad)
     IMG_array = np.flip(IMG_array, 1)
