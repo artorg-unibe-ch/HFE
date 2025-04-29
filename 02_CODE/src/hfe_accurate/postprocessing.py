@@ -305,6 +305,7 @@ def write_data_summary(
             optim["stiffness_FZ_MAX"],
             optim["yield_force_FZ_MAX"],
             optim["yield_disp_FZ_MAX"],
+            bone["trab_avg_DA"],
         ]
 
         field_names_titles = [
@@ -320,6 +321,7 @@ def write_data_summary(
             "stiffness_1D_FZ_MAX",
             "yield_force_FZ_MAX",
             "yield_disp_FZ_MAX",
+            "trabecular_average_DA",
         ]
 
     def append_list_as_row(filename: str, list_of_elem: list) -> None:

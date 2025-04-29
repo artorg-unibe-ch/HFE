@@ -330,8 +330,12 @@ def __calc_mech_props__(ref_nodedata, thickness_s=30.6):
     U3 = np.abs(ref_nodedata["U3"].values.astype(float))
     RF3 = np.abs(ref_nodedata["RF3"].values.astype(float))
     yield_force, yield_displacement = __yield_point__(thickness_s, stiffness, RF3, U3)
-    
-    return stiffness, yield_force, yield_displacement
+    max_force = np.max(RF3)
+    # disp_at_max_force: displacement at same index as max force
+    index_max_force = np.where(RF3 == max_force)[0][0]
+    disp_at_max_force = U3[index_max_force]
+
+    return stiffness, yield_force, yield_displacement, max_force, disp_at_max_force
 
 
 def parse_and_calculate_stiffness_yield_force(
@@ -363,20 +367,21 @@ def parse_and_calculate_stiffness_yield_force(
     data_processed_s = [line.split() for line in ref_nodedata]
     ref_nodedata_processed = pd.DataFrame(data_processed_s, columns=column_names)
 
-    stiffness, yield_force, yield_displacement = __calc_mech_props__(
-        ref_nodedata_processed, thickness
+    stiffness, yield_force, yield_displacement, max_force, disp_at_max_force = (
+        __calc_mech_props__(ref_nodedata_processed, thickness)
     )
-    return stiffness, yield_force, yield_displacement
+    return stiffness, yield_force, yield_displacement, max_force, disp_at_max_force
 
 
 def main():
     path2dat = "/home/sp20q110/HFE/04_SIMULATIONS/443_L_73_F/C0003101_03.dat"
-    stiffness, yield_force, yield_displacement = (
+    stiffness, yield_force, yield_displacement, max_force = (
         parse_and_calculate_stiffness_yield_force(path2dat, thickness=30.6)
     )
     print("Stiffness: ", stiffness)
     print("Yield Force: ", yield_force)
-    print('Yield Displacement: ', yield_displacement)
+    print("Yield Displacement: ", yield_displacement)
+    print("Max Force: ", max_force)
 
 
 if __name__ == "__main__":

@@ -2,24 +2,24 @@ solver:
   site: remote # local or remote
 
   # * simone-kubuntu
-  # abaqus: /var/DassaultSystemes/SIMULIA/Commands/abq2021hf6
+  abaqus: /var/DassaultSystemes/SIMULIA/Commands/abq2021hf6
   # * monterosa
   # abaqus: /var/DassaultSystemes/SIMULIA/Commands/abq2021hf4
   # * Ubelix
-  abaqus: /storage/workspaces/artorg_msb/hpc_abaqus/Software/DassaultSystemes/SIMULIA/Commands/abq2024
+  # abaqus: /storage/workspaces/artorg_msb/hpc_abaqus/Software/DassaultSystemes/SIMULIA/Commands/abq2024
 
 socket_paths: # paths that are socket specific (you might need to change them)
   # * simone-macbook
   # workdir: /Users/msb/Documents/01_PHD/03_Methods/CLEAN-HFE-ACCURATE
   # * simone-kubuntu
-  # workdir: /home/simoneponcioni/Documents/01_PHD/03_Methods/HFE
-  # scratchdir: /home/simoneponcioni/.SCRATCH
-  # odb2vtk: "/home/simoneponcioni/Documents/04_TOOLS/ODB2VTK/python/odb2vtk.py"
+  workdir: /home/simoneponcioni/Documents/01_PHD/03_Methods/HFE
+  scratchdir: /home/simoneponcioni/.SCRATCH
+  odb2vtk: "/home/simoneponcioni/Documents/04_TOOLS/ODB2VTK/python/odb2vtk.py"
   # * monterosa
   # workdir: /home/sp20q110/HFE
   # scratchdir: /home/sp20q110/.SCRATCH
   # odb2vtk: "/home/sp20q110/TOOLS/ODB2VTK/python/odb2vtk.py"
   # * Ubelix
-  workdir: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/HFE
-  scratchdir: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/.SCRATCH
-  odb2vtk: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/TOOLS/ODB2VTK/python/odb2vtk.py
+  # workdir: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/HFE
+  # scratchdir: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/.SCRATCH
+  # odb2vtk: /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/TOOLS/ODB2VTK/python/odb2vtk.py

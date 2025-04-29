@@ -668,6 +668,47 @@ def __compute_eval_evect__(MSL_kernel_list, elms, BVseg, projection=True):
     return evals, evects
 
 
+def calculate_degree_anisotropy(m_trab, element_volumes):
+    """
+    Calculate the degree of anisotropy for trabecular bone elements and their volume-weighted average.
+
+    Parameters:
+    -----------
+    m_trab : array-like
+        Array of fabric tensors for each trabecular element
+    element_volumes : array-like
+        Array of volumes for each trabecular element
+
+    Returns:
+    --------
+    trab_deg_aniso : numpy.ndarray
+        Array of degree of anisotropy values for each element
+    trab_deg_aniso_dict : dict
+        Dictionary mapping element indices to their degree of anisotropy values
+    trab_deg_aniso_avg : float
+        Volume-weighted average of the degree of anisotropy
+    """
+    trab_deg_aniso = np.zeros(len(m_trab))
+
+    for i in range(len(m_trab)):
+        m_sorted = np.sort(m_trab[i])
+        m0 = m_sorted[0]  # Smallest eigenvalue
+        m2 = m_sorted[2]  # Largest eigenvalue
+        trab_deg_aniso[i] = m2 / m0
+
+    # trab_deg_aniso_dict = {i: trab_deg_aniso[i] for i in range(len(trab_deg_aniso))}
+    total_weighted_sum = 0
+    total_volume = 0
+
+    for i in range(len(trab_deg_aniso)):
+        total_weighted_sum += trab_deg_aniso[i] * element_volumes[i]
+        total_volume += element_volumes[i]
+
+    trab_deg_aniso_avg = total_weighted_sum / total_volume
+
+    return trab_deg_aniso_avg[0]
+
+
 def material_mapping_spline(
     bone: dict,
     cfg,
@@ -728,7 +769,6 @@ def material_mapping_spline(
     BVTVcortseg_elem = {}
     BVTVtrabseg_elem = {}
     cogs = {}
-    DOA = {}
 
     cog_real_cort = bone["elms_centroids_cort"]
     cog_real_trab = bone["elms_centroids_trab"]
@@ -953,7 +993,14 @@ def material_mapping_spline(
     # convert cogs to dict
     cogs = {i: cogs_arr[i] for i in range(len(cogs_arr))}
 
+    # calculate degree of anisotropy (DA) for each element by using m[2] / m[0], making sure m0 < m1 < m2
+    trab_deg_aniso_avg = calculate_degree_anisotropy(m_trab, bone["elms_vol_trab"])
+    logger.info(
+        f"Degree of anisotropy (DA) for trabecular elements: {trab_deg_aniso_avg}"
+    )
+
     # store variables to bone dict
+    bone["trab_avg_DA"] = trab_deg_aniso_avg
     bone["RHOc_array"] = RHOc
     bone["RHOt_array"] = RHOt
     bone["RHOc_orig_array"] = RHOc

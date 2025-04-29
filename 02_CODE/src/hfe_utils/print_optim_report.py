@@ -89,11 +89,11 @@ def compute_optim_report_variables(
             max_index = count
             break
 
-    max_force = force_FZ_MAX[max_index, 2]
-    disp_at_max_force = disp_FZ_MAX[max_index, 2]
+    # max_force = force_FZ_MAX[max_index, 2]
+    # disp_at_max_force = disp_FZ_MAX[max_index, 2]
 
-    _, yield_force, yield_disp = parse_and_calculate_stiffness_yield_force(
-        path2dat, thickness=thickness_stacks
+    stiffness, yield_force, yield_disp, max_force, disp_at_max_force = (
+        parse_and_calculate_stiffness_yield_force(path2dat, thickness=thickness_stacks)
     )
     optim["yield_force_FZ_MAX"] = yield_force
     optim["yield_disp_FZ_MAX"] = yield_disp

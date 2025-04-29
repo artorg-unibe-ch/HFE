@@ -29,7 +29,7 @@ def vtk2numpy(imvtk):
     # vtk and numpy have different array conventions
     imnp = imnp.reshape(dim[2], dim[1], dim[0])
     # ! deactivated 21.01.25 for single-section! (POS)
-    # imnp = imnp.transpose(2, 1, 0)
+    imnp = imnp.transpose(2, 1, 0)
     return imnp
 
 
@@ -432,7 +432,6 @@ def read_image(name, filenames, bone, lock):
         print(IMG_pad.GetSize())
     else:
         # many images have some growth plate at the distal boundary
-        # IMG_pad = IMG_pad[:, :, :]
         IMG_pad = IMG_pad[:-30, :, :]
         pass
 
