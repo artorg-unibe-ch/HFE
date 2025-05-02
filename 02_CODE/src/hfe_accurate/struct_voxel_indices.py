@@ -190,6 +190,24 @@ def areadyadic_grid(
 
 
 @timeit
+def areadyadic_grid_safe(ad_indices, areadyadic_product, voxel_indices):
+    """A safer, non-parallel version of areadyadic_grid for debugging"""
+    for i in range(len(areadyadic_product)):
+        x, y, z = voxel_indices[i]
+        # Safety check to prevent out-of-bounds access
+        if (
+            x < ad_indices.shape[0]
+            and y < ad_indices.shape[1]
+            and z < ad_indices.shape[2]
+            and x >= 0
+            and y >= 0
+            and z >= 0
+        ):
+            ad_indices[x, y, z] += areadyadic_product[i]
+    return ad_indices
+
+
+@timeit
 def standalone_testing_exec():
     """
     Helper function to test the voxel indexing algorithm on a subset of the bone point cloud.
@@ -238,7 +256,7 @@ def map_isosurface(
     voxel_indices = index_cloud(CLOUD, RANGE_START, RANGE_END, DIMS)
 
     ad_idx = areadyadic_indices(voxel_indices)
-    ad_grid = areadyadic_grid(ad_idx, areadyadic_compartment, voxel_indices)
+    ad_grid = areadyadic_grid_safe(ad_idx, areadyadic_compartment, voxel_indices)
     return ad_grid
 
 

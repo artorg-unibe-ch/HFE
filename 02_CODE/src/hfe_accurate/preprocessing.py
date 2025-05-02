@@ -5,7 +5,7 @@ import numpy as np
 import vtk  # type: ignore
 from hfe_accurate.project_normals_cortex import clustered_point_normals
 from hfe_accurate.struct_voxel_indices import map_isosurface  # type: ignore
-from hfe_accurate.surface_nets import surface_nets
+from hfe_accurate.isosurface_generators import flying_edges
 from hfe_utils.imutils import numpy2vtk
 from hfe_utils.io_utils import timeit
 from numba import njit  # type: ignore
@@ -459,13 +459,10 @@ def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     )
 
     # * 1/6 STL file creation for trabecular compartment
-    surfnet_output = surface_nets(
+    surfnet_output = flying_edges(
         SEG_vtk,
-        output_mesh_type="tri",
-        output_style="boundary",
-        smoothing=True,
         decimate=True,
-        smoothing_num_iterations=10,
+        target_reduction_s=0.9,
     )
 
     del SEG_vtk

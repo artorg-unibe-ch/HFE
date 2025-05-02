@@ -12,11 +12,11 @@ meshing_settings:
   outside_val: 1                      # threshold value for the outside of the mask
   lower_thresh: 0                     # lower threshold for the mask
   upper_thresh: 0.9                   # upper threshold for the mask
-  s: 1000                             # smoothing factor of the spline
+  s: 200                              # smoothing factor of the spline
   k: 3                                # degree of the spline
   interp_points: 300                  # number of points to interpolate the spline
-  dp_simplification_outer: 8          # Ramer-Douglas-Peucker simplification factor for the periosteal contour
-  dp_simplification_inner: 8          # Ramer-Douglas-Peucker simplification factor for the endosteal contour
+  dp_simplification_outer: 3          # Ramer-Douglas-Peucker simplification factor for the periosteal contour
+  dp_simplification_inner: 3          # Ramer-Douglas-Peucker simplification factor for the endosteal contour
 
   thickness_tol: 0.5                  # minimum cortical thickness tolerance: 3 * XCTII voxel size
   phases: 2                           # 1: only external contour, 2: external and internal contour
@@ -26,7 +26,7 @@ meshing_settings:
   n_elms_longitudinal: 3              # validation: 3
   n_elms_transverse_trab: 13          # validation: 13
   n_elms_transverse_cort: 3           # validation: 3
-  n_elms_radial: 15                   # validation: 15 ! Should be 40 if trab_refinement is True
+  n_elms_radial: 60                   # validation: 15 ! Should be 40 if trab_refinement is True
   ellipsoid_fitting: True
 
   show_plots: False                   # show plots during construction

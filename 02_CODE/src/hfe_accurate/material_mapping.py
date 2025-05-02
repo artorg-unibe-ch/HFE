@@ -586,7 +586,7 @@ def __compute_eval_evect_projection__(elms, _evect):
     return evals, evects
 
 
-def __compute_eval_evect__(MSL_kernel_list, elms, BVseg, projection=True):
+def __compute_eval_evect__(cfg, MSL_kernel_list, elms, BVseg, projection=True):
     """
     Computes Eigenvalues and Eigenvectors for a given element using MSL_kernel_list, which is a return value of
     preprocessing.compute_local_MSL (stored in bone: dict)
@@ -661,11 +661,38 @@ def __compute_eval_evect__(MSL_kernel_list, elms, BVseg, projection=True):
             evalue = np.array([e.real for e in evalue])
             evect = np.array(evect)
 
+        b = cfg.homogenization.msl_to_mil_power_fit
+        evalue = __correct_power_law_mil__(evalue, b)
         evals[i] = evalue
         evects[i] = evect
     logger.warning(f"MSL exception encountered {ee} times")
     logger.warning(f"Eigenvector exception encountered {eee} times")
     return evals, evects
+
+
+def __correct_power_law_mil__(evalue: np.ndarray, b: float) -> np.ndarray:
+    """
+    Corrects a 3-element array of eigenvalues using the inverse of a power-law model.
+    This rescales the eigenvalues such that their powered form is normalized to a trace of 3.
+    Based on findings from Poncioni and Simon (2025).
+
+    Args:
+        evalue (np.ndarray): 1D array with 3 eigenvalues.
+        b (float): Exponent used in the power-law model.
+
+    Returns:
+        np.ndarray: Corrected eigenvalues (still 3 elements, summing to 3).
+    """
+    if evalue.shape[0] != 3:
+        raise ValueError("Expected exactly 3 eigenvalues.")
+
+    # Apply inverse of power-law exponent
+    evalue_power = evalue ** (1 / b)  # Element-wise power
+    denominator = np.sum(evalue_power)
+
+    # Normalize to ensure the trace sums to 3
+    evalue_corrected = 3 * evalue_power / denominator
+    return evalue_corrected
 
 
 def calculate_degree_anisotropy(m_trab, element_volumes):
@@ -892,11 +919,11 @@ def material_mapping_spline(
             )
         else:
             m_cort, mm_cort = __compute_eval_evect__(
-                MSL_kernel_list_cort, elms_cort, BVcortseg, projection=True
+                cfg, MSL_kernel_list_cort, elms_cort, BVcortseg, projection=True
             )
 
         m_trab, mm_trab = __compute_eval_evect__(
-            MSL_kernel_list_trab, elms_trab, BVtrabseg, projection=False
+            cfg, MSL_kernel_list_trab, elms_trab, BVtrabseg, projection=False
         )
         # * checking that no mixed elements were forgotten
         assert len(m_cort) + len(m_trab) == len(cog_real_cort) + len(cog_real_trab)

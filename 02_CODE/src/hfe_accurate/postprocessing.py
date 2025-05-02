@@ -225,6 +225,7 @@ def write_data_summary(
 
     # Create summary file if not yet existing
     filename = summary_path / (cfg.version.current_version + "_data_summary.csv")
+    img_parent_path = cfg.simulations.folder_id[cfg.simulations.grayscale_filenames]
     try:
         field_names_dict = [
             sample,
@@ -293,6 +294,7 @@ def write_data_summary(
         # ]
 
         field_names_dict = [
+            img_parent_path,
             sample,
             DOFs,
             time_sim,
@@ -309,6 +311,7 @@ def write_data_summary(
         ]
 
         field_names_titles = [
+            "img_parent_path",
             "Sample",
             "DOFs",
             "simulation_time",

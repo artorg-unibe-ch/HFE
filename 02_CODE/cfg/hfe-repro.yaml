@@ -27,7 +27,7 @@ image_processing:
   bvtv_scaling: 1                   # 0: no scaling, 1: Scaling of BVTV 61um to BVTV 11.4um [Hosseini2017]
   bvtv_slope: 0.963                 # bvtv intercept, added to each image voxel
   bvtv_intercept: 0.03814           # bvtv intercept, added to each image voxel
-  BVTVd_comparison: False           # runs the comparison in imutils.compute_bvtv_d_seg()
+  BVTVd_comparison: False            # runs the comparison in imutils.compute_bvtv_d_seg()
   BVTVd_as_BVTV: False              # True = BVTVd as BVTV, False= SEG as BVTV
   SEG_correction: True              # if BVTVd_as_BVTV is False you can apply a seg correction
   BMC_conservation: False           # [True/False] conservation of BMC
@@ -42,6 +42,7 @@ homogenization:
   ROI_BVTV_size_trab: 4.0           # Diameter of Arias Moreno et al. 2019
   isotropic_cortex: False           # Cortex fabric isotropic, or projected on surface (requires preprocessing.compute_local_MSL(onlytrab=True))
   orthotropic_cortex: True          # Cortex fabric orthotropic, managed in preprocessing.msl_triangulation()
+  msl_to_mil_power_fit: 1.4172467   # Power fit for MSL to Medtool's MIL conversion based on trabecular cubes (Simon2020)
 
 loadcase:
   full_nonlinear_loadcases: False   # [True/False] compute non-linear loadcases [FX, FY, MX, MY, MZ]
@@ -51,28 +52,31 @@ loadcase:
   time_for_displacement: 1
   min_step_size: 0.0000000001
   max_step_size: 0.3
-  load_displacement: -0.35          # (mm)
+  load_displacement: -0.35          #! -0.35 (mm)
 
 abaqus:
   nlgeom: on                        # affects NLGEOM parameter in abaqus simulation (on/off)
-  abaqus_nprocs: 4                  # (-)
+  abaqus_nprocs: 8                  # (-)
   abaqus_memory: 6000               # (MB)
   delete_odb: False                 # delete odb after retrieving data
   max_increments: 1000              # int number [1-1000]
   umat: 02_CODE/abq/UMAT_BIPHASIC.f
 
+
 strain_localisation:
   strain_analysis: True             # True: if using strain localisation for the analysis
-  
+
 
 registration:
   registration: False               # True: if using registered data for longitudinal studies
+
 
 optimization:
   fz_max_factor: 0.5
   fx_fy_max_factor: 1.3
   mx_my_max_factor: 1
   mz_max_factor: 0.8
+
 
 old_cfg:
   nphases: 1

@@ -12,6 +12,43 @@ logger.propagate = False
 
 
 @timeit
+def flying_edges(
+    imvtk,
+    decimate: bool = False,
+    target_reduction_s: float = 0.9,
+):
+    """
+    Applies the Surface Nets algorithm to a given vtkImageData object to generate a mesh.
+
+    Args:
+        imvtk (vtk.vtkImageData): The input image data.
+        decimate (bool, optional): Whether to apply decimation to the output. Defaults to False.
+        target_reduction_s (float, optional): The target reduction for decimation. Defaults to 0.9.
+
+    Returns:
+        pv.core.pointset.UnstructuredGrid: Mesh after applying Surface Nets.
+    """
+    flying_edges_handler = vtk.vtkDiscreteFlyingEdges3D()
+    flying_edges_handler.SetInputData(imvtk)
+    flying_edges_handler.SetNumberOfContours(1)
+    # For binary data with 0 and 1 values
+    flying_edges_handler.SetValue(0, 1)
+
+    flying_edges_handler.Update()
+    mesh = pv.wrap(flying_edges_handler.GetOutput())
+
+    # Decimation
+    if decimate:
+        mesh = fs.simplify_mesh(
+            mesh, target_reduction=target_reduction_s, agg=8, verbose=True
+        )
+        logger.info("Mesh decimated successfully")
+
+    logger.info("1/6 STL file creation finished with DiscreteFlyingEdges3D")
+    return mesh
+
+
+@timeit
 def surface_nets(
     imvtk,
     output_mesh_type: Literal["quads", "tri"] = "tri",
@@ -83,5 +120,5 @@ def surface_nets(
     # timenow = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     # mesh.save(f"mesh_{timenow}.vtk")
 
-    logger.info("1/6 STL file creation finished")
+    logger.info("1/6 STL file creation finished with SurfaceNets3D")
     return mesh

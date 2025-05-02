@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
-from hfe_accurate.surface_nets import surface_nets
+from hfe_accurate.isosurface_generators import surface_nets
 from scipy import ndimage  # type: ignore
 
 # flake8: noqa: E501
