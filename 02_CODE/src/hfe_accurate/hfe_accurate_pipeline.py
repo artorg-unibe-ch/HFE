@@ -91,6 +91,7 @@ def pipeline_hfe(cfg, folder_id, grayscale_filename):
     current_version = cfg.version.current_version
 
     sampledir = Path(feadir) / cfg.simulations.folder_id[grayscale_filename]
+
     inputfilename = f"{grayscale_filename}.inp".format(
         grayscale_filename, current_version
     )
@@ -206,11 +207,8 @@ def pipeline_hfe(cfg, folder_id, grayscale_filename):
 
     end_full = time()
     time_record["full"] = end_full - start_full
-    summary_path = Path(
-        sumdir / str(grayscale_filename + "_V_" + current_version + "_summary.txt")
-    )
 
     print(yaml.dump(time_record, default_flow_style=False))
 
     write_timing_summary(cfg, grayscale_filename, time_record)
-    return time_record, summary_path
+    return time_record

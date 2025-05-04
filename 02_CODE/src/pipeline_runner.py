@@ -83,24 +83,25 @@ def standalone_execution_sequential(cfg: HFEConfig):
         sim_logger.addHandler(sim_handler)
         coloredlogs.install(level=logging.INFO, logger=sim_logger)
 
-        time_record, summary_path = pipeline_hfe(cfg, folder_id, grayscale_filename)
+        time_record = pipeline_hfe(cfg, folder_id, grayscale_filename)
         time_dict.update({grayscale_filename: time_record})
+        results_summary.update(
+            {grayscale_filename: {"status": "Success", "time": time_record}}
+        )
         sim_logger.info(f"Simulation successful for {grayscale_filename}")
-        results_summary.update({grayscale_filename: "Success"})
     except Exception as exc:
         time_dict.update({grayscale_filename: "-"})
         sim_logger.error(f"Generated an exception: {exc}")
         sim_logger.error(f"Simulation failed for {grayscale_filename}")
-        results_summary.update({grayscale_filename: f"Failed: {exc}"})
+        results_summary.update(
+            {grayscale_filename: {"status": f"Failed: {exc}", "time": "-"}}
+        )
 
     end_full = time()
     time_record_full = end_full - start_full
-    sim_logger.info("Execution time:")
-    pprint(time_record_full, width=1)
+    sim_logger.info(f"Execution time: {time_record_full:.2f} (s)")
     with open("results-summary.json", "w") as fp:
         json.dump(results_summary, fp)
-
-    # io_utils.log_append_processingtime(summary_path, time_record_full)
 
 
 @hydra.main(config_path="../cfg/", config_name="hfe-nodaratis", version_base=None)

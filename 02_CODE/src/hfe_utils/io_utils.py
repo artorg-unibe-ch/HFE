@@ -41,45 +41,36 @@ def timeit(method):
     return timed
 
 
-def log_append_processingtime(filename, time):
-    SUMname = filename
-    time_summary = "\n".join(
-        [
-            "Summary Processing Time",
-            "Full processing time           : {:.3f} [s]".format(time),
-            "****************************************************************",
-        ]
-    )
-    logger.info(time_summary)
-
-    with open(SUMname, "a") as sumUpdate:
-        sumUpdate.write("\n")
-        sumUpdate.write(time_summary)
-    logger.info("... added processing time to summary file")
-
-
-def write_timing_summary(cfg, sample: str, time: dict):
+def write_timing_summary(cfg, sample: str, time_dict: dict):
     """
     Writes a summary of processing times for all samples in config
-    to summaries folder.
+    to the summaries folder.
+
     Parameters
     ----------
-    path    path to store (summaries)
-    time    dict with full processing time and simulation processing time
+    cfg : configuration object
+    sample : str
+        sample identifier
+    time_dict : dict
+        dictionary with processing times (e.g., "simulation", "full")
 
     Returns
     -------
-    writes txt file
+    None : writes a CSV file
     """
-
-    # file_path with pathlib from confing
     file_path = (
         Path(cfg.paths.sumdir)
         / f"{cfg.version.current_version}_processing_time_summary.csv"
     )
 
-    with open(file_path, "w") as f:
-        logger.debug(time, file=f)
+    # Open file in append mode; if it doesn't exist, write header
+    file_exists = file_path.exists()
+    with open(file_path, "a") as f:
+        if not file_exists:
+            f.write("sample,simulation_time,full_time\n")
+        simulation_time = time_dict.get("simulation", "NA")
+        full_time = time_dict.get("full", "NA")
+        f.write(f"{sample},{simulation_time},{full_time}\n")
 
 
 def set_filenames(cfg, sample, pipeline="fast", origaim_separate=True):
