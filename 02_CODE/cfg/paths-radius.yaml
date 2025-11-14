@@ -20,6 +20,6 @@ filenames:
 
 version:
   verification_files: 1
-  current_version: 04_testumat
+  current_version: 005_new_da_radius_kubc
   site_bone: Radius                                                  # Radius / Tibia
 

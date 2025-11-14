@@ -462,7 +462,7 @@ def msl_triangulation(cfg, SEG_array, cortmask, trabmask, spacing, tolerance):
     surfnet_output = flying_edges(
         SEG_vtk,
         decimate=True,
-        target_reduction_s=0.9,
+        target_reduction_s=0.5,
     )
 
     del SEG_vtk

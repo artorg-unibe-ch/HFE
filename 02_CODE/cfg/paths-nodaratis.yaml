@@ -20,6 +20,6 @@ filenames:
 
 version:
   verification_files: 1
-  current_version: 09_single-sect-full-dataset
+  current_version: 009_paper_stress
   site_bone: Radius                                                  # Radius / Tibia
 

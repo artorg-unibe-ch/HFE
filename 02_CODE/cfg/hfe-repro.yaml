@@ -42,7 +42,8 @@ homogenization:
   ROI_BVTV_size_trab: 4.0           # Diameter of Arias Moreno et al. 2019
   isotropic_cortex: False           # Cortex fabric isotropic, or projected on surface (requires preprocessing.compute_local_MSL(onlytrab=True))
   orthotropic_cortex: True          # Cortex fabric orthotropic, managed in preprocessing.msl_triangulation()
-  msl_to_mil_power_fit: 1.4172467   # Power fit for MSL to Medtool's MIL conversion based on trabecular cubes (Simon2020)
+  msl_xct_to_mil_uct: 0.911         # Power fit for MSL to Medtool's MIL conversion based on trabecular cubes (Simon2020)
+  msl_xct_to_mil_xct: 1.415         # Power fit for XCTII MSL to µCT MIL conversion (Hosseini2017, appedix Poncioni2025)
 
 loadcase:
   full_nonlinear_loadcases: False   # [True/False] compute non-linear loadcases [FX, FY, MX, MY, MZ]
@@ -52,7 +53,7 @@ loadcase:
   time_for_displacement: 1
   min_step_size: 0.0000000001
   max_step_size: 0.3
-  load_displacement: -0.35          #! -0.35 (mm)
+  load_displacement: -0.5          #! -0.35 (mm)
 
 abaqus:
   nlgeom: on                        # affects NLGEOM parameter in abaqus simulation (on/off)

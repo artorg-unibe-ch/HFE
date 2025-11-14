@@ -434,8 +434,8 @@ C           ELASTICITY PARAMETERS TRABECULAR BONE
             E0  = 10490.0D0
             V0  = 0.2289D0
             MU0 = 3350.0D0
-            KS  = 1.91D0
-            LS  = 1.10D0
+            KS  = 1.55D0
+            LS  = 0.82D0
 C           STRENGTH PARAMETERS TRABECULAR BONE
             SIGD0P = 62.01D0
             SIGD0N = 78.58D0

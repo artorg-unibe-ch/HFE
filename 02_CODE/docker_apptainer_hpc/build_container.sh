@@ -20,5 +20,5 @@
 
 
 # Run command
-srun apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development:latest
+srun apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development_ifort:latest
 
