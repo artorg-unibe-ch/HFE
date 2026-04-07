@@ -24,12 +24,12 @@ image_processing:
   origaim_separate: False           # For Hosseini Dataset, Image parameters are read from original aim, not from processed BMD file, there they were deleted by medtool pre-processing
   mask_separate: True               # Standard evaluation gives two separate mask file (CORTMASK and TRABMASK), False if one maskfile with two different labels
   imtype: NATIVE                    # NATIVE or BMD
-  bvtv_scaling: 1                   # 0: no scaling, 1: Scaling of BVTV 61um to BVTV 11.4um [Hosseini2017]
+  bvtv_scaling: 1                   # 0: no scaling, 1: Scaling of BVTVd 61um to BVTV 11.4um [Hosseini2017]
   bvtv_slope: 0.963                 # bvtv intercept, added to each image voxel
   bvtv_intercept: 0.03814           # bvtv intercept, added to each image voxel
   BVTVd_comparison: False           # runs the comparison in imutils.compute_bvtv_d_seg()
   BVTVd_as_BVTV: False              # True = BVTVd as BVTV, False= SEG as BVTV
-  SEG_correction: True              # if BVTVd_as_BVTV is False you can apply a seg correction
+  SEG_correction: True              # if BVTVd_as_BVTV is False you can apply a seg correction (XCT's BV/TV to BV/TVd)
   BMC_conservation: False           # [True/False] conservation of BMC
 
 homogenization:
@@ -42,6 +42,8 @@ homogenization:
   ROI_BVTV_size_trab: 4.0           # Diameter of Arias Moreno et al. 2019
   isotropic_cortex: False           # Cortex fabric isotropic, or projected on surface (requires preprocessing.compute_local_MSL(onlytrab=True))
   orthotropic_cortex: True          # Cortex fabric orthotropic, managed in preprocessing.msl_triangulation()
+  msl_xct_to_mil_uct: 0.911         # Power fit for MSL to Medtool's MIL conversion based on trabecular cubes (Simon2020)
+  msl_xct_to_mil_xct: 1.415         # Power fit for XCTII MSL to µCT MIL conversion (Hosseini et al. 2017, appedix Poncioni 2025)
 
 loadcase:
   full_nonlinear_loadcases: False   # [True/False] compute non-linear loadcases [FX, FY, MX, MY, MZ]
@@ -51,7 +53,7 @@ loadcase:
   time_for_displacement: 1
   min_step_size: 0.0000000001
   max_step_size: 0.3
-  load_displacement: -0.5          # (mm)
+  load_displacement: -0.1          # (mm)
 
 abaqus:
   nlgeom: on                        # affects NLGEOM parameter in abaqus simulation (on/off)

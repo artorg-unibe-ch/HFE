@@ -1,8 +1,8 @@
 paths:
   origaimdir: 00_ORIGAIM/TIBIA
   aimdir:  01_DATA/TIBIA/
-  feadir:  04_SIMULATIONS/TIBIA_P
-  sumdir: 05_SUMMARIES/TIBIA
+  feadir:  04_SIMULATIONS/TIBIA_REMODELING_CLEAN
+  sumdir: 05_SUMMARIES/TIBIA_REMODELING_CLEAN
   commondir: 01_DATA/BATCH/FEA_noReg/IMAGES/                        # if registration is true -> path to registration files
   folder_bc_psl_loadcases: 02_CODE/abq/BC_PSL/
   boundary_conditions: 02_CODE/abq/BC_PSL/boundary_conditions.inp
@@ -20,6 +20,6 @@ filenames:
 
 version:
   verification_files: 1
-  current_version: 04_testumat
+  current_version: 01_remodeling_clean
   site_bone: Tibia                                                  # Radius / Tibia
 

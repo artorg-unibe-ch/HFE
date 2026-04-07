@@ -104,7 +104,7 @@ def standalone_execution_sequential(cfg: HFEConfig):
         json.dump(results_summary, fp)
 
 
-@hydra.main(config_path="../cfg/", config_name="hfe-nodaratis", version_base=None)
+@hydra.main(config_path="../cfg/", config_name="hfe-tibia", version_base=None)
 def main(cfg: HFEConfig):
     EXECUTION_TYPE = ExecutionType.PYTHON
 

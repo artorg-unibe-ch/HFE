@@ -653,7 +653,8 @@ def __compute_eval_evect__(cfg, MSL_kernel_list, elms, BVseg, projection=True):
             evalue = cai_evalues()  # Cai et al, Acta Biomater. 2019
 
         _lim = float(2.5)
-        if np.any(np.array(evalue) > _lim):
+        lim_ = float(0.5)
+        if (np.any(np.array(evalue) > _lim)) or (np.any(np.array(evalue) < lim_)):
             # raise ValueError(f"evalue > {_lim} in element {i}")
             print(f"Exception n. {eee}:\nevalue > {_lim} in element {i}")
             eee += 1
@@ -661,7 +662,8 @@ def __compute_eval_evect__(cfg, MSL_kernel_list, elms, BVseg, projection=True):
             evalue = np.array([e.real for e in evalue])
             evect = np.array(evect)
 
-        b = cfg.homogenization.msl_to_mil_power_fit
+        # Correct power-law model for MSL XCTII to MIL uCT (Poncioni 2025)
+        b = cfg.homogenization.msl_xct_to_mil_uct
         evalue = __correct_power_law_mil__(evalue, b)
         evals[i] = evalue
         evects[i] = evect
@@ -720,6 +722,9 @@ def calculate_degree_anisotropy(m_trab, element_volumes):
     for i in range(len(m_trab)):
         m_sorted = np.sort(m_trab[i])
         m0 = m_sorted[0]  # Smallest eigenvalue
+        # avoid divisions by small numbers
+        if m0 < 0.1:
+            m0 = 0.1
         m2 = m_sorted[2]  # Largest eigenvalue
         trab_deg_aniso[i] = m2 / m0
 
@@ -1021,7 +1026,13 @@ def material_mapping_spline(
     cogs = {i: cogs_arr[i] for i in range(len(cogs_arr))}
 
     # calculate degree of anisotropy (DA) for each element by using m[2] / m[0], making sure m0 < m1 < m2
-    trab_deg_aniso_avg = calculate_degree_anisotropy(m_trab, bone["elms_vol_trab"])
+    # Use relationship MSL XCTII to MIL XCTII (Poncioni 2025)
+    m_trab_corrected = []
+    corr_fact = cfg.homogenization.msl_xct_to_mil_xct
+    for i in range(len(m_trab)):
+        m_trab_corrected.append(__correct_power_law_mil__(m_trab[i], corr_fact))
+        
+    trab_deg_aniso_avg = calculate_degree_anisotropy(m_trab_corrected, bone["elms_vol_trab"])
     logger.info(
         f"Degree of anisotropy (DA) for trabecular elements: {trab_deg_aniso_avg}"
     )

@@ -293,6 +293,8 @@ def write_data_summary(
         #     "stiffness_1D_FZ_MAX",
         # ]
 
+        app_yield_stress = optim["yield_force_FZ_MAX"] / bone["mean_area"]
+        
         field_names_dict = [
             img_parent_path,
             sample,
@@ -307,6 +309,7 @@ def write_data_summary(
             optim["stiffness_FZ_MAX"],
             optim["yield_force_FZ_MAX"],
             optim["yield_disp_FZ_MAX"],
+            app_yield_stress,
             bone["trab_avg_DA"],
         ]
 
@@ -324,6 +327,7 @@ def write_data_summary(
             "stiffness_1D_FZ_MAX",
             "yield_force_FZ_MAX",
             "yield_disp_FZ_MAX",
+            "apparent_yield_stress",
             "trabecular_average_DA",
         ]
 

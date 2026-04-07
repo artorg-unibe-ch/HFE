@@ -40,7 +40,7 @@ def flying_edges(
     # Decimation
     if decimate:
         mesh = fs.simplify_mesh(
-            mesh, target_reduction=target_reduction_s, agg=8, verbose=True
+            mesh, target_reduction=target_reduction_s, agg=5, verbose=True
         )
         logger.info("Mesh decimated successfully")
 
@@ -108,7 +108,7 @@ def surface_nets(
     # Decimation
     if decimate:
         mesh = fs.simplify_mesh(
-            mesh, target_reduction=TARGET_REDUCTION, agg=8, verbose=True
+            mesh, target_reduction=TARGET_REDUCTION, agg=5, verbose=True
         )
 
     # Smoothing

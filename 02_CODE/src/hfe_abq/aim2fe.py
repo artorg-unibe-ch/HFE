@@ -224,6 +224,11 @@ def aim2fe_psl(cfg, sample):
             reference_point_coord,
         ) = mesh.mesher()
 
+        elm_vol = np.concatenate((elm_vol_cort.flatten(), elm_vol_trab.flatten()))
+        mesh_vol = sum(elm_vol)
+        mesh_height = max(centroids_cort[2])
+        mean_area = mesh_vol / mesh_height
+
         bone["nodes"] = nodes
         bone["elms"] = elms
         bone["nb_nodes"] = nb_nodes
@@ -237,6 +242,7 @@ def aim2fe_psl(cfg, sample):
         bone["bnds_bot"] = bnds_bot
         bone["bnds_top"] = bnds_top
         bone["reference_point_coord"] = reference_point_coord
+        bone["mean_area"] = mean_area
 
         bone["elsets"] = []
         if "FEelSize" not in bone or bone["FEelSize"]:
