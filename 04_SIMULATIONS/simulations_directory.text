@@ -1,0 +1,10 @@
+The 04_SIMULATIONS directory will store Abaqus processing data, such as:
+
+|
+|__ STUDY_UID_001
+        |__ C000000n_V.inp              # Abaqus input file
+        |__ C000000n_V.txt              # Abaqus summary of the results (u and Rf @ RP)
+        |__ C000000n_V.msg              # Abaqus message file
+        |__ C000000n_V.dat              # Abaqus data file
+        |__ C000000n_V.odb              # Abaqus output database
+        ...
