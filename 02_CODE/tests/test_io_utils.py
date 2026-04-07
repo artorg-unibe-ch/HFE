@@ -73,9 +73,16 @@ class TestExt:
         assert result.endswith(".txt")
 
     def test_no_existing_extension(self):
+        # rsplit(".", 1) on "filename" returns ["filename"] — only one part —
+        # so the full string becomes the stem and new_ext is appended.
         result = ext("filename", ".csv")
-        # rsplit(".", 1) on "filename" gives ["filename"] — only one part
         assert result == "filename.csv"
+
+    def test_dotfile_treated_as_extension(self):
+        # ".gitignore".rsplit(".", 1) → ["", "gitignore"]
+        # so result is "" + ".csv" = ".csv"
+        result = ext(".gitignore", ".csv")
+        assert result == ".csv"
 
     def test_empty_extension(self):
         result = ext("file.dat", "")
