@@ -1,0 +1,3 @@
+[submodule "02_CODE/ODB2VTK"]
+	path = 02_CODE/ODB2VTK
+	url = https://github.com/artorg-unibe-ch/ODB2VTK.git
