@@ -22,104 +22,44 @@
 
 ## 🔧 Installation
 
-This project uses Conda to manage its Python dependencies. To create a Conda environment with the required dependencies, follow these steps:
+For local development on a workstation, follow the [Local installation guide](02_CODE/docs/installation_local.md).
 
-1. **Install Conda**: If you haven't already, download and install Conda from the [official website](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+For containerized and HPC-oriented workflows, see the [Docker and Apptainer guide](02_CODE/docs/build_container.md).
 
-2. **Create a Conda Environment**: Run the following command to create a new Conda environment.
+Additional project documentation:
+- [Code and pipeline docs](https://artorg-unibe-ch.github.io/HFE/)
+
+### Container and HPC setup
+
+Use Docker for reproducible local and CI environments, and Apptainer for HPC deployment.
+
+- Full container guide: [Docker and Apptainer guide](02_CODE/docs/build_container.md)
+- Local workstation setup: [Local installation guide](02_CODE/docs/installation_local.md)
+- Dockerfiles and SLURM scripts: [Container assets](02_CODE/docker_apptainer_hpc)
+
+Quick start (ifort image):
 
 ```sh
-conda create --name hfe-essentials python=3.12
+cd 02_CODE/docker_apptainer_hpc
+docker build -f Dockerfile.ubuntu24.04.ifort -t simoneponcioni/hfe_development_ifort:latest .
+docker run -it simoneponcioni/hfe_development_ifort:latest
+```
+
+Inside the container:
+
+```sh
+source /opt/miniconda/etc/profile.d/conda.sh
 conda activate hfe-essentials
-pip install -r requirements.txt
+cd /path/to/HFE
+python 02_CODE/src/pipeline_runner.py
 ```
 
-### Building Dependencies with Docker (including FORTRAN compiler)
-
-This project uses Docker to manage its dependencies. To build the Docker image, follow these steps:
-
-1. Install Docker on your machine if you haven't already. You can download it from [here](https://www.docker.com/products/docker-desktop).
-
-2. Navigate to the project directory that contains the Dockerfile. In this case, it's the `02_CODE` directory.
+Build an Apptainer image from Docker Hub:
 
 ```sh
-cd 02_CODE
+apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development_ifort:latest
 ```
 
-1. Build the Docker image using the Dockerfile.ubuntu24.04 file. Replace your_image_name with the name you want to give to your Docker image.
+## Getting started
 
-```sh
-docker build -t your_image_name -f Dockerfile.ubuntu24.04 .
-```
-
-### Running the Docker Image
-
-After building the Docker image, you can run it using the following command:
-
-```sh
-docker run -it your_image_name
-```
-
-This will start a Docker container with the built image and open an interactive shell in the container. The Docker container has all the dependencies installed and the environment set up as specified in the Dockerfile.
-
-### Running the Project
-
-Once you're inside the Docker container, you can run the project. The exact command depends on how your project is structured, but it will generally look something like this:
-
-```sh
-conda init
-source .bashrc
-conda activate hfe-essentials
-cd 02_CODE
-python src/pipeline_runner.py
-```
-
-### Building the Docker image in Apptainer
-
-When working on HPC, it might be necessary to run the container in Apptainer. You can pull the Docker image directly from Docker Hub:
-
-```sh
-apptainer build --sandbox hfe_development.sif docker://simoneponcioni/hfe_development:latest
-```
-
-Once it's downloaded, run it following these steps:
-
-### Work interactively
-
-Submit an interactive SLURM job and then use the shell command to spawn an interactive shell within the Singularity container:
-
-```sh
-srun --time=01:00:00 --mem-per-cpu=2G --pty bash
-apptainer shell <image>
-```
-
-### Execute the containers “runscript”
-
-```sh
-#!/bin/bash
-#SBATCH --partition=all
-#SBATCH --mem-per-cpu=2G
-
-apptainer run <image>   #or ./<image>
-```
-
-### Run a command within your container image
-
-```sh
-apptainer exec <image> <command>
-
-e.g:
-apptainer exec container.img cat /etc/os-release
-```
-
-### Bind directories
-
-Per default the started application (e.g. cat in the last example) runs withing the container. The container works like a seperate machine with own operation system etc. Thus, per default you have no access to files and directories outside the container. This can be changed using binding paths.
-
-If files are needed outside the container, e.g. in your HOME you can add the path to APPTAINER_BINDPATH="src1[:dest1],src2[:dest2]. All subdirectories and files will be accessible. Thus you could bind your HOME directory as:
-
-```sh
-export APPTAINER_BINDPATH="$HOME/:$HOME/"   
-# or simply 
-export APPTAINER_BINDPATH="$HOME"
-```
+To run HFE locally, update the required configuration files first. Follow the step-by-step [setup guide](02_CODE/docs/setup.md).

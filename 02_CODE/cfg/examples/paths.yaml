@@ -1,0 +1,24 @@
+paths:
+  origaimdir: 00_ORIGAIM/DATASET_NAME/
+  aimdir: 01_DATA/DATASET_NAME/
+  feadir: 04_SIMULATIONS/DATASET_NAME/
+  sumdir: 05_SUMMARIES/DATASET_NAME/
+  commondir: 01_DATA/BATCH/FEA_noReg/IMAGES/                        # used when registration is True
+  folder_bc_psl_loadcases: 02_CODE/abq/BC_PSL/
+  boundary_conditions: 02_CODE/abq/BC_PSL/boundary_conditions.inp
+  odb_OF_python_script: 02_CODE/src/hfe_abq/readODB_acc.py
+  odb_python_script: 02_CODE/src/hfe_abq/readODB_acc.py
+
+filenames:
+  filename_postfix_cort_mask: _CORT_MASK_UNCOMP.AIM
+  filename_postfix_trab_mask: _TRAB_MASK_UNCOMP.AIM
+  filename_postfix_mask: _MASK.AIM                                  # used if mask_separate is False
+  filename_postfix_bmd: _UNCOMP.AIM
+  filename_postfix_seg: _SEG_UNCOMP.AIM
+  filename_postfix_common: _common_region_MASK.AIM                  # used when registration is True
+  filename_postfix_transform: _transformation.tfm                   # used when registration is True
+
+version:
+  verification_files: 1
+  current_version: 001_sim
+  site_bone: Radius                                                  # Radius or Tibia, only changes abaqus ODB header now

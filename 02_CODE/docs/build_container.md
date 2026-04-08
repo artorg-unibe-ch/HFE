@@ -12,11 +12,11 @@ header-includes:
     }
 ---
 
-When building python code for research, reproducibility is paramount. The best way to ensure reproducibility and portability is to build a container with all the dependencies and the code. In this tutorial, I will show how to build a container with a Python application and ship it to Docker Hub, and subsequently build an Apptainer image that meets our needs at the University of Bern and its HPC cluster Ubelix.
+When developing research software, reproducibility and portability are critical. This guide shows how to build Docker images for HFE, publish them to Docker Hub, and run them on Ubelix through Apptainer.
 
 ## 1. Build a container with your Python application
 
-Similarly to what done  `Dockerfile.ubuntu24.04.ifort` (you can find it at the bottom of the page), we first need to create a Dockerfile. A Dockerfile is a text document that contains all the commands a user could call on the command line to assemble an image. Using docker build users can create an automated build that executes several command-line instructions in succession. In this case:
+The repository already includes two Dockerfiles in `02_CODE/docker_apptainer_hpc`: one for `gcc` and one for `ifort`. A Dockerfile defines all commands required to assemble an image. In this case:
 
 **BASE IMAGE SETTINGS**
 ```Dockerfile
@@ -38,17 +38,18 @@ RUN /bin/bash -c "source /opt/intel/oneapi/setvars.sh"
 RUN unset PYTHONPATH
 ```
 
-And so on. Follow basic recommendations [here](https://doi.org/10.1371/journal.pcbi.1008316) and [here](https://docs.docker.com/guides/) to build an image suitable for your needs. Once the Dockerfile is ready, build the image with the following command:
+And so on. Follow basic recommendations [here](https://doi.org/10.1371/journal.pcbi.1008316) and [here](https://docs.docker.com/guides/) to build an image suitable for your needs. To build one of the provided images:
 
 ```bash
-cd <path/to/dockerfile>
-docker build -f dockerfile.name -t tag/release-version .
+cd 02_CODE/docker_apptainer_hpc
+docker build -f Dockerfile.ubuntu24.04.gcc -t simoneponcioni/hfe_development_gcc:latest .
+docker build -f Dockerfile.ubuntu24.04.ifort -t simoneponcioni/hfe_development_ifort:latest .
 ```
 You can also add build arguments to the Dockerfile. For example, the username and the token to a private repository on Docker Hub:
 
 ```Dockerfile
-cd <path/to/dockerfile>
-docker build -f --build-arg USERNAME=<username> -t tag/release-version .
+cd 02_CODE/docker_apptainer_hpc
+docker build -f Dockerfile.ubuntu24.04.ifort --build-arg GITHUB_USERNAME=<username> -t <username>/<image>:<tag> .
 ```
 
 You can create an account on Docker Hub and push the image to your repository. This way, you can share the image with collaborators or use it on different machines. To push the image to Docker Hub, follow these steps:
@@ -71,11 +72,11 @@ docker tag tag/release-version <username>/<repository-name:tag/release-version>
 docker push <username>/<repository-name:tag/release-version>
 ```
 
-Amazing! Now you have built your container with all the dependecies and the code. You can share it with collaborators or use it on different machines. In the next section, I will show how to build an Apptainer image with our needs at the University of Bern and its Ubelix HPC cluster.
+Amazing! Now you have built your container with all dependencies and the code. You can share it with collaborators or use it on different machines. In the next section, I will show how to build an Apptainer image for Ubelix.
 
 ## 2. Build an Apptainer image
 
-Building the image is relatively straightforward once you have put in place an image on Docker Hub. Login to Ubelix and open a bash session on a node with:
+Building the image is relatively straightforward once you have pushed an image to Docker Hub. Log in to Ubelix and open a bash session on a node with:
 
 ```bash
 <submit-node> srun --time=01:00:00 --mem-per-cpu=10G --pty bash
@@ -88,12 +89,12 @@ Then, follow these steps:
 <node> mkdir -p <path/to/apptainer>
 <node> cd <path/to/apptainer>
 export APPTAINER_BINDPATH="$HOME/:$HOME/" # more details on bind directories below
-<node> apptainer build --force singularity_image_name.sif docker://username/imagename:tag
+<node> apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development_ifort:latest
 ```
 
 ### Bind directories
 
-Per default the started application runs withing the container. The container works like a separate machine with own operation system etc. Thus, per default you have no access to files and directories outside the container. This can be changed using binding paths.
+By default, the started application runs within the container. The container works like a separate machine with its own operating system. Therefore, by default, you have no access to files and directories outside the container. This can be changed using bind paths.
 
 If files are needed outside the container, e.g. in your HOME you can add the path to APPTAINER_BINDPATH="src1[:dest1],src2[:dest2]. All subdirectories and files will be accessible. Thus you could bind your HOME directory as:
 
@@ -105,7 +106,7 @@ export APPTAINER_BINDPATH="$HOME"
 
 ### Automated build
 
-Great! Tipically, one hour should be enough to build the image. If you don't want to build it interactively, you can submit a job with the following script:
+Great! Typically, one hour should be enough to build the image. If you do not want to build it interactively, you can submit a job with the following script:
 
 ```bash
 # Job name
@@ -125,7 +126,7 @@ Great! Tipically, one hour should be enough to build the image. If you don't wan
 
 # Run command
 # '--force' flag is used to overwrite the image if it already exists
-srun apptainer build --force singularity_image_name.sif docker://username/imagename:tag
+srun apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development_ifort:latest
 ```
 
 Further documentation can be found [here](https://hpc-unibe-ch.github.io/software/apptainer.html) and [here](https://apptainer.org/documentation/).
@@ -192,15 +193,15 @@ srun apptainer exec /storage/workspaces/artorg_msb/hpc_abaqus/poncioni/apptainer
 /bin/bash -c "source /opt/intel/oneapi/setvars.sh && source /opt/miniconda/etc/profile.d/conda.sh && conda activate hfe-essentials && python abq_submit.py"
 ```
 
-Good job! This way, you have built a container with all the dependencies and the code, and shipped it to Docker Hub. You have also built an Apptainer image with your needs at the University of Bern and its Ubelix HPC cluster. You can now run the container interactively or with a job script. This way, you can ensure reproducibility and portability of your code, no matter where you are, and which system is hosting your code.
+Good job! You have built a container with all dependencies and code, pushed it to Docker Hub, and built an Apptainer image for Ubelix. You can now run the container interactively or with a job script while preserving reproducibility and portability.
 
-# Taking it one step further with `Github Actions`
+# Taking it one step further with `GitHub Actions`
 
-Most of the times these steps are iterative and incremental. Who will know in two weeks what the dependencies will be? Thus, it is important to keep track of the changes and the decisions made. This can be done by using a version control system like Git. Github has handy workflows that can be set up for automatic building and deployment of the container. In this section, we will use Github to keep track of our code and its changes.
+Most of the time these steps are iterative and incremental. It is important to keep track of changes and decisions using Git. GitHub provides workflows for automatic image builds and deployment.
 
-Imagine this scenario: You are building an application that uses a newly developed Python pipeline/package. You have built a container with all the dependencies and the code, and shipped it to Docker Hub. You have also built an Apptainer image with your needs at the University of Bern and its Ubelix HPC cluster. Two week later, your colleague asks you to add a new feature to the application. You have to add the new feature to the code, rebuild the container, and ship it to Docker Hub. Do you really want to repeat these steps another time manually? No way! Let's use Github to automate the process:
+Imagine this scenario: You are building an application that uses a newly developed Python pipeline/package. You have built a container with all the dependencies and the code, and shipped it to Docker Hub. You have also built an Apptainer image for Ubelix. Two weeks later, your colleague asks you to add a new feature to the application. You have to add the new feature to the code, rebuild the container, and ship it to Docker Hub. Do you really want to repeat these steps manually every time? No way. Let's use GitHub to automate the process:
 
-1. Access your Github repository on the web:
+1. Access your GitHub repository on the web:
 2. Click on the "Actions" tab:
 3. Click on "New workflow":
 4. 'Categories/Continuous integration' -> 'Docker image'
@@ -243,7 +244,7 @@ jobs:
             tags: ${{ secrets.DOCKERHUB_USERNAME }}/<imagename:tag>
 ```
 
-Now, the next time that you will push your code, Github will make sure to build the container and push it to Docker Hub automatically. If you are working on Ubelix, remember to rebuild the Apptainer image with the latest update!
+Now, the next time you push your code, GitHub will build the container and push it to Docker Hub automatically. If you are working on Ubelix, remember to rebuild the Apptainer image with the latest update.
 
 ### Example of a Dockerfile for HFE simulations on Ubelix
 
@@ -287,9 +288,9 @@ ENV PATH="/opt/miniconda/bin:$PATH"
 # Create a conda environment
 RUN conda create -n hfe-essentials python=3.12
 SHELL ["conda", "run", "-n", "hfe-essentials", "/bin/bash", "-c"]
-# Copy hfe requirements.txt and install requirements
-COPY ./requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy hfe requirements.text and install requirements
+COPY ./requirements.text .
+RUN pip install --no-cache-dir -r requirements.text
 RUN pip install -U scikit-image
 RUN pip install imutils
 

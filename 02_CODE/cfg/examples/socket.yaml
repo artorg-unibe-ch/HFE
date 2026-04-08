@@ -1,0 +1,8 @@
+solver:
+  site: remote # local or remote (kept for compatibility)
+  abaqus: /path/to/abaqus/Commands/abq2024
+
+socket_paths: # paths that are socket specific
+  workdir: /path/to/HFE
+  scratchdir: /path/to/scratch/.SCRATCH
+  odb2vtk: /path/to/ODB2VTK/python/odb2vtk.py

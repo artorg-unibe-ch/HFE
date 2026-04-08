@@ -1,0 +1,10 @@
+simulations:
+  grayscale_filenames:
+    C0000001
+    C0000002
+    C0000003
+
+  folder_id:
+    C0000001: PATH_1
+    C0000002: PATH_2
+    C0000003: PATH_3
