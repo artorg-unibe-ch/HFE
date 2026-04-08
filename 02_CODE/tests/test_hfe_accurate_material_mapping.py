@@ -204,7 +204,6 @@ class TestBmcCompensation:
         """With BMC_conservation=True, the output RHO values differ from input."""
         args = self._make_inputs(rho_val=0.2, phi_val=0.3, spacing=0.1, el_size=0.5)
         BMD, CORTMASK, TRABMASK, cort_elms, trab_elms, RHOc, RHOt, PHIc, PHIt, FEelSize, Spacing = args
-        RHOc_in = RHOc.copy()
         RHOc_out, RHOt_out, BMC_sim_comp, BMC_reco_tot, lambda_c, lambda_t = _bmc_compensation(
             BMD, CORTMASK, TRABMASK, cort_elms, trab_elms,
             RHOc, RHOt, PHIc, PHIt, FEelSize, Spacing,
