@@ -29,37 +29,6 @@ For containerized and HPC-oriented workflows, see the [Docker and Apptainer guid
 Additional project documentation:
 - [Code and pipeline docs](https://artorg-unibe-ch.github.io/HFE/)
 
-### Container and HPC setup
-
-Use Docker for reproducible local and CI environments, and Apptainer for HPC deployment.
-
-- Full container guide: [Docker and Apptainer guide](02_CODE/docs/build_container.md)
-- Local workstation setup: [Local installation guide](02_CODE/docs/installation_local.md)
-- Dockerfiles and SLURM scripts: [Container assets](02_CODE/docker_apptainer_hpc)
-
-Quick start (ifort image):
-
-```sh
-cd 02_CODE/docker_apptainer_hpc
-docker build -f Dockerfile.ubuntu24.04.ifort -t simoneponcioni/hfe_development_ifort:latest .
-docker run -it simoneponcioni/hfe_development_ifort:latest
-```
-
-Inside the container:
-
-```sh
-source /opt/miniconda/etc/profile.d/conda.sh
-conda activate hfe-essentials
-cd /path/to/HFE
-python 02_CODE/src/pipeline_runner.py
-```
-
-Build an Apptainer image from Docker Hub:
-
-```sh
-apptainer build --force hfe_development_ifort.sif docker://simoneponcioni/hfe_development_ifort:latest
-```
-
 ## Getting started
 
-To run HFE locally, update the required configuration files first. Follow the step-by-step [setup guide](02_CODE/docs/setup.md).
+To run HFE, update the required configuration files first. Follow the step-by-step [setup guide](02_CODE/docs/setup.md).
