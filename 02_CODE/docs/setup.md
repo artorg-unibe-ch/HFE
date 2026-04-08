@@ -110,7 +110,7 @@ Update the following fields in your socket configuration before running the pipe
 - `abaqus`: Absolute path to your Abaqus solver executable.
 - `workdir`: Base directory where your HFE project pipeline is located.
 - `scratchdir`: Directory used for Abaqus scratch files. Create this directory before running jobs.
-- `odb2vtk`: Absolute path to `odb2vtk.py`. Download ODB2VTK from [Arris-Composites/ODB2VTK](https://github.com/Arris-Composites/ODB2VTK) and point this field to the Python file in your local clone.
+- `odb2vtk`: Absolute path to `odb2vtk.py`. This is a submodule cloned to 02_CODE/ODB2VTK and forked from [Arris-Composites](https://github.com/Arris-Composites/ODB2VTK).
 
 Example template:
 

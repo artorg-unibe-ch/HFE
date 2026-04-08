@@ -5,4 +5,4 @@ solver:
 socket_paths: # paths that are socket specific
   workdir: /path/to/HFE
   scratchdir: /path/to/scratch/.SCRATCH
-  odb2vtk: /path/to/ODB2VTK/python/odb2vtk.py
+  odb2vtk: /path/to/02_CODE/ODB2VTK/python/odb2vtk.py
