@@ -14,3 +14,4 @@ scipy==1.13.0
 setuptools==78.1.1
 SimpleITK==2.3.1
 vtk==9.3.0
+pyhexspline==1.0.2
