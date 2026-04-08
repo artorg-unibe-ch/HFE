@@ -16,5 +16,11 @@ git clone --recursive https://github.com/artorg-unibe-ch/HFE.git
 ```sh
 conda create --name hfe-essentials python=3.12
 conda activate hfe-essentials
-pip install -r requirements.txt
+pip install -r 02_CODE/requirements.txt
+```
+
+4. **Validation of the installation with pytest**:
+
+```sh
+python -m pip install pytest && python -m pytest -q 02_CODE/tests
 ```

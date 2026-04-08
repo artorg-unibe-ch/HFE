@@ -28,9 +28,9 @@ def vtk2numpy(imvtk):
     if component == 1:
         imnp = temp.reshape(dims[2], dims[1], dims[0])
         imnp = imnp.transpose(2, 1, 0)
-        imnp = np.flip(imnp, 0) # TODO: testing this for Gabriela
+        imnp = np.flip(imnp, 0)  # TODO: testing this for Gabriela
     if component == 3 or component == 4:
-        if dims[2] == 1: # a 2D RGB image
+        if dims[2] == 1:  # a 2D RGB image
             imnp = temp.reshape(dims[1], dims[0], component)
             imnp = imnp.transpose(0, 1, 2)
             imnp = np.flipud(imnp)
@@ -458,7 +458,6 @@ def read_image(name, filenames, bone, lock):
     if name == "SEG":
         IMG_array[IMG_array == 127] = 2
         IMG_array[IMG_array == 126] = 1
-        np.save('/storage/workspaces/artorg_msb/hpc_abaqus/poncioni/HFE/tests/seg.npy', IMG_array, allow_pickle=True)
         with lock:
             bone[name + "_array"] = IMG_array
     else:
