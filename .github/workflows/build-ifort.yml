@@ -1,5 +1,8 @@
 name: Build Docker Container - ifort
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
