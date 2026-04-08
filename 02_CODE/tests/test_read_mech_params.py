@@ -15,8 +15,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import importlib
-import textwrap
 import tempfile
 import os
 
@@ -29,7 +27,6 @@ import hfe_utils.read_mech_params as rmech
 remove_empty_entries_list = rmech.remove_empty_entries_list
 _stiffness = rmech.__dict__["__stiffness__"]
 _yield_point = rmech.__dict__["__yield_point__"]
-_calc_mech_props = rmech.__dict__["__calc_mech_props__"]
 
 
 # ---------------------------------------------------------------------------

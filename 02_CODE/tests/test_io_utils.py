@@ -13,10 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import tempfile
 import csv
 
-import pytest
 from omegaconf import OmegaConf
 
 from hfe_utils.io_utils import ext, write_timing_summary, hydra_update_cfg_key, FileConfig
