@@ -129,6 +129,8 @@ socket_paths: # paths that are socket specific
 
 Update the following groups in your mesh configuration before running the meshing pipeline:
 
+**Note**: mesh paths are used to bypass settings in standalone execution of the meshing script (see [standalone.py](https://github.com/artorg-unibe-ch/spline_mesher/blob/master/standalone.py)). No modification is required when using the hFE pipeline.
+
 - `img_settings.img_basepath`: Relative or absolute path to the input image directory.
 - `img_settings.meshpath`: Directory where intermediate mesh assets are written.
 - `img_settings.outputpath`: Directory where final mesh outputs are exported.
