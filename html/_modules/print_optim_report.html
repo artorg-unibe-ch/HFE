@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>print_optim_report &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">print_optim_report</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for print_optim_report</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">hfe_utils.read_mech_params</span> <span class="kn">import</span> <span class="n">parse_and_calculate_stiffness_yield_force</span>
+
+
+<div class="viewcode-block" id="OR_ult_load_disp">
+<a class="viewcode-back" href="../print_optim_report.html#print_optim_report.OR_ult_load_disp">[docs]</a>
+<span class="k">def</span> <span class="nf">OR_ult_load_disp</span><span class="p">(</span><span class="n">optim</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">loadcase</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes maximum force and maximum moment and respective displacements and angles.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    optim</span>
+<span class="sd">    loadcase</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    optim dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loadcase</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">loadcase</span><span class="p">)</span>
+    <span class="n">dict_loadcase_index</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;FX&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;FY&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;FZ&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;MX&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;MY&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;MZ&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s2">&quot;FZ_MAX&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">])</span>
+    <span class="n">force_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;force_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">])</span>
+
+    <span class="n">force</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;force_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">])[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">moment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;force_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">])[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="c1"># find index of maximum force values</span>
+    <span class="n">index_force</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">force</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">force</span><span class="p">))</span>
+
+    <span class="c1"># catch if several entries have same max value</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">i_force_0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index_force</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">max_force</span> <span class="o">=</span> <span class="n">force_full</span><span class="p">[</span><span class="n">i_force_0</span><span class="p">]</span>
+        <span class="n">disp_max_force</span> <span class="o">=</span> <span class="n">disp</span><span class="p">[</span><span class="n">i_force_0</span><span class="p">][</span><span class="n">dict_loadcase_index</span><span class="p">[</span><span class="n">loadcase</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">i_force_0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index_force</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">max_force</span> <span class="o">=</span> <span class="n">force_full</span><span class="p">[</span><span class="n">i_force_0</span><span class="p">]</span>
+        <span class="n">disp_max_force</span> <span class="o">=</span> <span class="n">disp</span><span class="p">[</span><span class="n">i_force_0</span><span class="p">][</span><span class="n">dict_loadcase_index</span><span class="p">[</span><span class="n">loadcase</span><span class="p">]]</span>
+
+    <span class="c1"># find index of maximum moment values</span>
+    <span class="n">index_moment</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">moment</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">moment</span><span class="p">))</span>
+
+    <span class="c1"># catch if several entries have same max value</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">i_moment_0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index_moment</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">max_moment</span> <span class="o">=</span> <span class="n">force_full</span><span class="p">[</span><span class="n">i_moment_0</span><span class="p">]</span>
+        <span class="n">disp_max_moment</span> <span class="o">=</span> <span class="n">disp</span><span class="p">[</span><span class="n">i_moment_0</span><span class="p">][</span><span class="n">dict_loadcase_index</span><span class="p">[</span><span class="n">loadcase</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">i_moment_0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index_moment</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">max_moment</span> <span class="o">=</span> <span class="n">force_full</span><span class="p">[</span><span class="n">i_moment_0</span><span class="p">]</span>
+        <span class="n">disp_max_moment</span> <span class="o">=</span> <span class="n">disp</span><span class="p">[</span><span class="n">i_moment_0</span><span class="p">][</span><span class="n">dict_loadcase_index</span><span class="p">[</span><span class="n">loadcase</span><span class="p">]]</span>
+
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;max_force_disp_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">max_force</span><span class="p">,</span> <span class="n">disp_max_force</span><span class="p">]</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;max_moment_disp_&quot;</span> <span class="o">+</span> <span class="n">loadcase</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">max_moment</span><span class="p">,</span> <span class="n">disp_max_moment</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">optim</span></div>
+
+
+
+<div class="viewcode-block" id="compute_optim_report_variables">
+<a class="viewcode-back" href="../print_optim_report.html#print_optim_report.compute_optim_report_variables">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_optim_report_variables</span><span class="p">(</span>
+    <span class="n">optim</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">path2dat</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">thickness_stacks</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">):</span>
+
+    <span class="n">optim</span> <span class="o">=</span> <span class="n">OR_ult_load_disp</span><span class="p">(</span><span class="n">optim</span><span class="p">,</span> <span class="s2">&quot;FZ_MAX&quot;</span><span class="p">)</span>
+
+    <span class="n">force_FZ_MAX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;force_FZ_MAX&quot;</span><span class="p">])</span>
+    <span class="n">disp_FZ_MAX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_FZ_MAX&quot;</span><span class="p">])</span>
+
+    <span class="n">stiffness</span> <span class="o">=</span> <span class="n">force_FZ_MAX</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">disp_FZ_MAX</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1"># Find maximum force</span>
+    <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">force_FZ_MAX</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">force_FZ_MAX</span><span class="p">[</span><span class="n">count</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">force_FZ_MAX</span><span class="p">[</span><span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">max_index</span> <span class="o">=</span> <span class="n">count</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span><span class="p">:</span>
+            <span class="n">max_index</span> <span class="o">=</span> <span class="n">count</span>
+            <span class="k">break</span>
+
+    <span class="n">max_force</span> <span class="o">=</span> <span class="n">force_FZ_MAX</span><span class="p">[</span><span class="n">max_index</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">disp_at_max_force</span> <span class="o">=</span> <span class="n">disp_FZ_MAX</span><span class="p">[</span><span class="n">max_index</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">yield_force</span><span class="p">,</span> <span class="n">yield_disp</span> <span class="o">=</span> <span class="n">parse_and_calculate_stiffness_yield_force</span><span class="p">(</span>
+        <span class="n">path2dat</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="n">thickness_stacks</span>
+    <span class="p">)</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;yield_force_FZ_MAX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yield_force</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;yield_disp_FZ_MAX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yield_disp</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;stiffness_FZ_MAX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stiffness</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;max_force_FZ_MAX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_force</span>
+    <span class="n">optim</span><span class="p">[</span><span class="s2">&quot;disp_at_max_force_FZ_MAX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">disp_at_max_force</span>
+
+    <span class="k">return</span> <span class="n">optim</span></div>
+
+
+
+<div class="viewcode-block" id="compute_tissue_mineralization">
+<a class="viewcode-back" href="../print_optim_report.html#print_optim_report.compute_tissue_mineralization">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_tissue_mineralization</span><span class="p">(</span>
+    <span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">SEG_array</span><span class="p">,</span> <span class="n">BMD_array</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute tissue mineralization by masking BMD image with SEG and compute mean BMD of both phases</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bone</span>
+<span class="sd">    SEG_array</span>
+<span class="sd">    BMD_array</span>
+<span class="sd">    string</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bone</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cortmask</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">trabmask</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span>
+
+    <span class="n">cortmask</span><span class="p">[</span><span class="n">cortmask</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">trabmask</span><span class="p">[</span><span class="n">trabmask</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">SEG_array</span><span class="p">[</span><span class="n">SEG_array</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">BMD_array_cort</span> <span class="o">=</span> <span class="n">BMD_array</span> <span class="o">*</span> <span class="n">cortmask</span>
+    <span class="n">BMD_array_trab</span> <span class="o">=</span> <span class="n">BMD_array</span> <span class="o">*</span> <span class="n">trabmask</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_CORT&quot;</span> <span class="o">+</span> <span class="n">string</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">BMD_array_cort</span><span class="p">[</span><span class="n">SEG_array</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;mean_BMD_SEG_TRAB&quot;</span> <span class="o">+</span> <span class="n">string</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">BMD_array_trab</span><span class="p">[</span><span class="n">SEG_array</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+
+
+<div class="viewcode-block" id="compute_bone_volume">
+<a class="viewcode-back" href="../print_optim_report.html#print_optim_report.compute_bone_volume">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_bone_volume</span><span class="p">(</span><span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">SEG_array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes bone volume from segmentation SEG_array</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bone</span>
+<span class="sd">    SEG_array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">voxel_volume</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">3</span>
+
+    <span class="n">cortmask</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">trabmask</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span>
+    <span class="n">SEG_array_cort</span> <span class="o">=</span> <span class="n">SEG_array</span> <span class="o">*</span> <span class="n">cortmask</span>
+    <span class="n">SEG_array_trab</span> <span class="o">=</span> <span class="n">SEG_array</span> <span class="o">*</span> <span class="n">trabmask</span>
+
+    <span class="n">n_voxel_CORT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">SEG_array_cort</span><span class="p">[</span><span class="n">SEG_array_cort</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">n_voxel_TRAB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">SEG_array_trab</span><span class="p">[</span><span class="n">SEG_array_trab</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BV_CORT_SEG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_voxel_CORT</span> <span class="o">*</span> <span class="n">voxel_volume</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BV_TRAB_SEG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_voxel_TRAB</span> <span class="o">*</span> <span class="n">voxel_volume</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+
+
+<div class="viewcode-block" id="compute_bone_report_variables_no_psl">
+<a class="viewcode-back" href="../print_optim_report.html#print_optim_report.compute_bone_report_variables_no_psl">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_bone_report_variables_no_psl</span><span class="p">(</span><span class="n">bone</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+
+    <span class="n">bone</span> <span class="o">=</span> <span class="n">compute_tissue_mineralization</span><span class="p">(</span>
+        <span class="n">bone</span><span class="p">,</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">],</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMD_array&quot;</span><span class="p">],</span> <span class="s2">&quot;orig&quot;</span>
+    <span class="p">)</span>
+    <span class="n">bone</span> <span class="o">=</span> <span class="n">compute_tissue_mineralization</span><span class="p">(</span>
+        <span class="n">bone</span><span class="p">,</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">],</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMDscaled&quot;</span><span class="p">],</span> <span class="s2">&quot;scaled&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">bone</span> <span class="o">=</span> <span class="n">compute_bone_volume</span><span class="p">(</span><span class="n">bone</span><span class="p">,</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;SEG_array&quot;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">bone</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

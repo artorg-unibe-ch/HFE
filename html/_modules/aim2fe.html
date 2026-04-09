@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>aim2fe &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">aim2fe</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for aim2fe</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Converts an AIM file to a HDF5 file.</span>
+<span class="sd">Adapted from the script from Denis Schenk, ISTB, University of Bern.</span>
+
+<span class="sd">Author: Jarunan Panyasantisuk, ETH Scientific IT Services.</span>
+<span class="sd">Date: 13 November 2018.</span>
+
+<span class="sd">Maintained by: Simone Poncioni, ARTORG Center for Biomedical Engineering Research, SITEM Insel, University of Bern</span>
+<span class="sd">Date: March 2024</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="kn">import</span> <span class="nn">hfe_accurate.material_mapping</span> <span class="k">as</span> <span class="nn">material_mapping</span>
+<span class="kn">import</span> <span class="nn">hfe_accurate.preprocessing</span> <span class="k">as</span> <span class="nn">preprocessing</span>
+<span class="kn">import</span> <span class="nn">hfe_utils.imutils</span> <span class="k">as</span> <span class="nn">imutils</span>
+<span class="kn">import</span> <span class="nn">hfe_utils.io_utils</span> <span class="k">as</span> <span class="nn">io_utils</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">SimpleITK</span> <span class="k">as</span> <span class="nn">sitk</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span> <span class="nn">pyhexspline.spline_mesher</span> <span class="kn">import</span> <span class="n">HexMesh</span>  <span class="c1"># type: ignore</span>
+
+<span class="n">LOGGING_NAME</span> <span class="o">=</span> <span class="s2">&quot;HFE-ACCURATE&quot;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">LOGGING_NAME</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;TkAgg&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="save_image_with_colorbar">
+<a class="viewcode-back" href="../aim2fe.html#aim2fe.save_image_with_colorbar">[docs]</a>
+<span class="k">def</span> <span class="nf">save_image_with_colorbar</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Saves an image with a colorbar to the specified output path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (numpy.ndarray): The image data to be displayed.</span>
+<span class="sd">        output_path (str): The path where the image will be saved.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+
+<span class="sd">    This function performs the following operations:</span>
+<span class="sd">    1. Creates a new figure and axis.</span>
+<span class="sd">    2. Displays the image data using a viridis colormap.</span>
+<span class="sd">    3. Sets the title of the image based on the output path.</span>
+<span class="sd">    4. Adds a colorbar to the right of the image.</span>
+<span class="sd">    5. Adjusts the layout to be tight.</span>
+<span class="sd">    6. Saves the figure to the specified output path with a resolution of 300 dpi.</span>
+<span class="sd">    7. Clears the figure to free up memory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">divider</span> <span class="o">=</span> <span class="n">make_axes_locatable</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+    <span class="n">cax</span> <span class="o">=</span> <span class="n">divider</span><span class="o">.</span><span class="n">append_axes</span><span class="p">(</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;5%&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">cax</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="aim2fe_psl">
+<a class="viewcode-back" href="../aim2fe.html#aim2fe.aim2fe_psl">[docs]</a>
+<span class="k">def</span> <span class="nf">aim2fe_psl</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts AIM image to Abaqus INP file using the provided configuration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cfg (dict): Dictionary of configuration parameters.</span>
+<span class="sd">        sample (str): Sample identifier.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        TypeError: If there is an issue with the input types.</span>
+<span class="sd">        ValueError: If an unrecognized fabric or meshing type is encountered.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing the bone dictionary and the path to the Abaqus INP file.</span>
+
+<span class="sd">    This function performs the following operations:</span>
+<span class="sd">    1. Sets filenames and reads image parameters.</span>
+<span class="sd">    2. Reads AIM images and image parameters, optionally using multithreading.</span>
+<span class="sd">    3. Adjusts image size if registration is enabled.</span>
+<span class="sd">    4. Saves images with colorbars.</span>
+<span class="sd">    5. Prepares material mapping by calculating BVTV and BMD values.</span>
+<span class="sd">    6. Generates a mesh if the meshing type is &quot;spline&quot;.</span>
+<span class="sd">    7. Computes MSL kernel list based on the fabric type.</span>
+<span class="sd">    8. Maps materials to the mesh.</span>
+<span class="sd">    9. Computes and stores summary and performance variables.</span>
+<span class="sd">    10. Plots MSL fabric if the meshing type is &quot;spline&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># For Hosseini Dataset, Image parameters are read from original aim, not from processed BMD file, as there</span>
+    <span class="c1"># they were deleted by medtool pre-processing</span>
+    <span class="n">origaim_separate_bool</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">origaim_separate</span>
+
+    <span class="n">filenames</span> <span class="o">=</span> <span class="n">io_utils</span><span class="o">.</span><span class="n">set_filenames</span><span class="p">(</span>
+        <span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">pipeline</span><span class="o">=</span><span class="s2">&quot;accurate&quot;</span><span class="p">,</span> <span class="n">origaim_separate</span><span class="o">=</span><span class="n">origaim_separate_bool</span>
+    <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">filenames</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="n">io_utils</span><span class="o">.</span><span class="n">print_mem_usage</span><span class="p">()</span>
+
+    <span class="c1"># 2 Read AIM images and image parameters</span>
+    <span class="c1"># ---------------------------------------------------------------------------------</span>
+    <span class="n">bone</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+    <span class="n">spacing</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span> <span class="o">=</span> <span class="n">imutils</span><span class="o">.</span><span class="n">read_img_param</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spacing</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Scaling&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaling</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Slope&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">slope</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Intercept&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">intercept</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">mask_separate</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">image_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BMD&quot;</span><span class="p">,</span> <span class="s2">&quot;SEG&quot;</span><span class="p">,</span> <span class="s2">&quot;CORTMASK&quot;</span><span class="p">,</span> <span class="s2">&quot;TRABMASK&quot;</span><span class="p">]</span>
+        <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">image_list</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">=</span><span class="n">imutils</span><span class="o">.</span><span class="n">read_aim</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">bone</span><span class="p">,</span> <span class="n">lock</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c1"># to avoid overloading the print statements</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">image_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BMD&quot;</span><span class="p">,</span> <span class="s2">&quot;SEG&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">image_list</span><span class="p">):</span>
+            <span class="n">bone</span> <span class="o">=</span> <span class="n">imutils</span><span class="o">.</span><span class="n">read_aim</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">bone</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">imutils</span><span class="o">.</span><span class="n">read_aim_mask_combined</span><span class="p">(</span><span class="s2">&quot;MASK&quot;</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">bone</span><span class="p">)</span>
+
+    <span class="c1"># image_list = [&quot;BMD&quot;, &quot;SEG&quot;, &quot;CORTMASK&quot;, &quot;TRABMASK&quot;]</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">registration</span><span class="o">.</span><span class="n">registration</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">image_list</span><span class="p">):</span>
+            <span class="n">bone</span> <span class="o">=</span> <span class="n">imutils</span><span class="o">.</span><span class="n">adjust_image_size</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">bone</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">imutils</span><span class="o">.</span><span class="n">CropType</span><span class="o">.</span><span class="n">crop</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># Save images with colorbar</span>
+    <span class="n">imutils</span><span class="o">.</span><span class="n">save_images_with_colorbar</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">bone</span><span class="p">)</span>
+
+    <span class="c1"># 3 Prepare material mapping</span>
+    <span class="c1"># ---------------------------------------------------------------------------------</span>
+
+    <span class="n">IMTYPE</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">image_processing</span><span class="o">.</span><span class="n">imtype</span>
+    <span class="n">io_utils</span><span class="o">.</span><span class="n">print_mem_usage</span><span class="p">()</span>
+    <span class="n">BVTVscaled</span><span class="p">,</span> <span class="n">BMDscaled</span><span class="p">,</span> <span class="n">BVTVraw</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">calculate_bvtv</span><span class="p">(</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Scaling&quot;</span><span class="p">],</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Slope&quot;</span><span class="p">],</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Intercept&quot;</span><span class="p">],</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMD_array&quot;</span><span class="p">],</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">],</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">],</span>
+        <span class="n">cfg</span><span class="p">,</span>
+        <span class="n">IMTYPE</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVscaled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BVTVscaled</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BMDscaled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BMDscaled</span>
+    <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVraw&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BVTVraw</span>
+
+    <span class="k">del</span> <span class="n">BVTVscaled</span><span class="p">,</span> <span class="n">BMDscaled</span><span class="p">,</span> <span class="n">BVTVraw</span>
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">meshing</span> <span class="o">==</span> <span class="s2">&quot;spline&quot;</span><span class="p">:</span>
+        <span class="n">cort_mask_np</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CORTMASK_array&quot;</span><span class="p">]</span>
+        <span class="n">trab_mask_np</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;TRABMASK_array&quot;</span><span class="p">]</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">cort_mask_np</span><span class="p">,</span> <span class="n">trab_mask_np</span><span class="p">]</span>
+        <span class="n">mask_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CORTMASK&quot;</span><span class="p">,</span> <span class="s2">&quot;TRABMASK&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mask_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">mask_names</span><span class="p">):</span>
+            <span class="n">sitk_image</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">GetImageFromArray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">sitk_image</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">PermuteAxes</span><span class="p">(</span><span class="n">sitk_image</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">sitk_image</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Flip</span><span class="p">(</span><span class="n">sitk_image</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+            <span class="n">sitk_image</span><span class="o">.</span><span class="n">SetSpacing</span><span class="p">(</span><span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">])</span>
+            <span class="n">cortmask_path</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">Path</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">aimdir</span><span class="p">)</span>
+                <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">simulations</span><span class="o">.</span><span class="n">folder_id</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+                <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">mask_name</span><span class="si">}</span><span class="s2">.mhd&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sitk</span><span class="o">.</span><span class="n">WriteImage</span><span class="p">(</span><span class="n">sitk_image</span><span class="p">,</span> <span class="n">cortmask_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask_name</span> <span class="o">==</span> <span class="s2">&quot;CORTMASK&quot;</span><span class="p">:</span>
+                <span class="n">sitk_image_cort</span> <span class="o">=</span> <span class="n">sitk_image</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c1"># append sample filename to config_mesh[&quot;img_settings&quot;]</span>
+        <span class="n">sample_n</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="n">io_utils</span><span class="o">.</span><span class="n">hydra_update_cfg_key</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s2">&quot;img_settings.img_basefilename&quot;</span><span class="p">,</span> <span class="n">sample_n</span><span class="p">)</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">img_settings</span><span class="o">.</span><span class="n">img_basefilename</span> <span class="o">=</span> <span class="n">sample_n</span>
+        <span class="n">mesh</span> <span class="o">=</span> <span class="n">HexMesh</span><span class="p">(</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">meshing_settings</span><span class="p">,</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">img_settings</span><span class="p">,</span>
+            <span class="n">sitk_image</span><span class="o">=</span><span class="n">sitk_image_cort</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="p">(</span>
+            <span class="n">nodes</span><span class="p">,</span>
+            <span class="n">elms</span><span class="p">,</span>
+            <span class="n">nb_nodes</span><span class="p">,</span>
+            <span class="n">centroids_cort</span><span class="p">,</span>
+            <span class="n">centroids_trab</span><span class="p">,</span>
+            <span class="n">elm_vol_cort</span><span class="p">,</span>
+            <span class="n">elm_vol_trab</span><span class="p">,</span>
+            <span class="n">radius_roi_cort</span><span class="p">,</span>
+            <span class="n">radius_roi_trab</span><span class="p">,</span>
+            <span class="n">bnds_bot</span><span class="p">,</span>
+            <span class="n">bnds_top</span><span class="p">,</span>
+            <span class="n">reference_point_coord</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">mesher</span><span class="p">()</span>
+
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elms</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;nb_nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nb_nodes</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;degrees_of_freedom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">*</span> <span class="mi">6</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">centroids_cort</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_centroids_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">centroids_trab</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elm_vol_cort</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elms_vol_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elm_vol_trab</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;radius_roi_cort&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">radius_roi_cort</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;radius_roi_trab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">radius_roi_trab</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_bot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnds_bot</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;bnds_top&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bnds_top</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;reference_point_coord&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reference_point_coord</span>
+
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;elsets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;FEelSize&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bone</span> <span class="ow">or</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]:</span>
+            <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">element_size</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">*</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="c1"># old voxel-based mesh settings</span>
+        <span class="n">CoarseFactor</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;FEelSize&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;Spacing&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;CoarseFactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CoarseFactor</span>
+        <span class="n">BVTVscaled_shape</span> <span class="o">=</span> <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;BVTVscaled&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;MESH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+            <span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">BVTVscaled_shape</span><span class="p">)</span> <span class="o">/</span> <span class="n">CoarseFactor</span><span class="p">)])</span>
+        <span class="p">)</span>
+
+    <span class="c1"># 4 Material mapping</span>
+    <span class="c1"># ---------------------------------------------------------------------------------</span>
+    <span class="c1"># Compute MSL kernel list</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">fabric_type</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Computing local MSL kernel list&quot;</span><span class="p">)</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">compute_msl_spline</span><span class="p">(</span><span class="n">bone</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">homogenization</span><span class="o">.</span><span class="n">fabric_type</span> <span class="o">==</span> <span class="s2">&quot;global&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Computing global MSL kernel list&quot;</span><span class="p">)</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fabric type not recognised&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">meshing</span> <span class="o">==</span> <span class="s2">&quot;spline&quot;</span><span class="p">:</span>
+        <span class="p">(</span>
+            <span class="n">bone</span><span class="p">,</span>
+            <span class="n">abq_dictionary</span><span class="p">,</span>
+            <span class="n">abq_inp_path</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">material_mapping</span><span class="o">.</span><span class="n">material_mapping_spline</span><span class="p">(</span>
+            <span class="n">bone</span><span class="p">,</span>
+            <span class="n">cfg</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">bone</span><span class="p">[</span><span class="s2">&quot;abq_inp_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">abq_inp_path</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Meshing type not recognised (ghost layer mode 1)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 5 Compute and store summary and performance variables</span>
+    <span class="c1"># ---------------------------------------------------------------------------------</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Computing summary variables&quot;</span><span class="p">)</span>
+    <span class="n">summary_variables</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">set_summary_variables</span><span class="p">(</span><span class="n">bone</span><span class="p">)</span>
+    <span class="c1"># io_utils.log_summary(bone, cfg, filenames, summary_variables)</span>
+    <span class="n">bone</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">bone</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">summary_variables</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Summary variables computed&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">meshing</span> <span class="o">==</span> <span class="s2">&quot;spline&quot;</span><span class="p">:</span>
+        <span class="n">imutils</span><span class="o">.</span><span class="n">plot_MSL_fabric_spline</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">abq_dictionary</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Meshing type not recognised&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bone</span><span class="p">,</span> <span class="n">abq_inp_path</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

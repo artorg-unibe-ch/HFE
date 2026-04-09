@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>project_normals_cortex &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">project_normals_cortex</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for project_normals_cortex</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">cProfile</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">floor</span><span class="p">,</span> <span class="n">sqrt</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyvista</span> <span class="k">as</span> <span class="nn">pv</span>
+<span class="kn">import</span> <span class="nn">SimpleITK</span> <span class="k">as</span> <span class="nn">sitk</span>
+<span class="kn">from</span> <span class="nn">hfe_accurate.surface_nets</span> <span class="kn">import</span> <span class="n">surface_nets</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span>  <span class="c1"># type: ignore</span>
+
+<span class="c1"># flake8: noqa: E501</span>
+
+
+<div class="viewcode-block" id="clustered_point_normals">
+<a class="viewcode-back" href="../project_normals_cortex.html#project_normals_cortex.clustered_point_normals">[docs]</a>
+<span class="k">def</span> <span class="nf">clustered_point_normals</span><span class="p">(</span>
+    <span class="n">cfg</span><span class="p">,</span> <span class="n">CORTmask_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">TRABmask_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">spacing</span><span class="p">:</span> <span class="nb">list</span>
+<span class="p">):</span>
+    <span class="c1"># peel off the first and last 10 slices</span>
+    <span class="n">CORTmask_array</span> <span class="o">=</span> <span class="n">CORTmask_array</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">10</span><span class="p">:</span><span class="o">-</span><span class="mi">10</span><span class="p">]</span>
+    <span class="n">TRABmask_array</span> <span class="o">=</span> <span class="n">TRABmask_array</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">10</span><span class="p">:</span><span class="o">-</span><span class="mi">10</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__fill_mask__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fills the mask by combining CORTmask_array and TRABmask_array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The filled mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">CORTmask_array</span> <span class="o">+</span> <span class="n">TRABmask_array</span>
+        <span class="n">cort_filled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cort_filled</span>
+
+    <span class="k">def</span> <span class="nf">__get__normals__</span><span class="p">(</span><span class="n">surfnet_output</span><span class="p">:</span> <span class="n">pv</span><span class="o">.</span><span class="n">PolyData</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes and normalizes the normals of a given PolyData object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            surfnet_output (pv.PolyData): The PolyData object for which to compute and normalize the normals.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the points of the PolyData object and their corresponding normalized normals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">surfnet_output</span><span class="o">.</span><span class="n">compute_normals</span><span class="p">(</span>
+            <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">consistent_normals</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">auto_orient_normals</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="n">point_normals</span> <span class="o">=</span> <span class="n">surfnet_output</span><span class="o">.</span><span class="n">point_normals</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">surfnet_output</span><span class="o">.</span><span class="n">points</span>
+        <span class="n">norms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">point_normals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">point_normals_normalized</span> <span class="o">=</span> <span class="n">point_normals</span> <span class="o">/</span> <span class="n">norms</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">points</span><span class="p">,</span> <span class="n">point_normals_normalized</span>
+
+    <span class="k">def</span> <span class="nf">__cluster_normals__</span><span class="p">(</span><span class="n">points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">point_normals_normalized</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clusters the normals of points in a 3D grid.</span>
+<span class="sd">        It first normalizes and scales the points to the grid size.</span>
+<span class="sd">        Then, for each point, it adds its corresponding normal to the sum of the normals</span>
+<span class="sd">        at the grid position of the point and increments the count of vectors at that position.</span>
+<span class="sd">        Finally, it computes the average of the vectors at each grid position and returns</span>
+<span class="sd">        the flattened average vectors and grid points.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points (np.ndarray): The points for which to cluster the normals.</span>
+<span class="sd">            point_normals_normalized (np.ndarray): The normalized normals of the points.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the flattened average vectors and grid points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_img_dim</span> <span class="o">=</span> <span class="n">cort_filled</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">coarse_factor</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">mesher</span><span class="o">.</span><span class="n">element_size</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">_grid</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">_img_dim</span> <span class="o">/</span> <span class="n">coarse_factor</span><span class="p">)</span>
+        <span class="n">grid_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">_grid</span><span class="p">,</span> <span class="n">_grid</span><span class="p">,</span> <span class="n">_grid</span><span class="p">)</span>
+
+        <span class="n">min_vals</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">max_vals</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">points_normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">points</span> <span class="o">-</span> <span class="n">min_vals</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">max_vals</span> <span class="o">-</span> <span class="n">min_vals</span><span class="p">)</span>
+        <span class="n">points_scaled</span> <span class="o">=</span> <span class="n">points_normalized</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grid_size</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">vector_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">grid_size</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+        <span class="n">vector_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">grid_size</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">point</span><span class="p">,</span> <span class="n">vector</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">points_scaled</span><span class="p">,</span> <span class="n">point_normals_normalized</span><span class="p">):</span>
+            <span class="n">grid_pos</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="n">vector_sum</span><span class="p">[</span><span class="n">grid_pos</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vector</span>
+            <span class="n">vector_count</span><span class="p">[</span><span class="n">grid_pos</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">average_vectors</span> <span class="o">=</span> <span class="n">vector_sum</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">vector_count</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span><span class="p">,</span> <span class="n">grid_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">_grid</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">_grid</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">_grid</span><span class="p">]</span>
+        <span class="n">grid_points</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span><span class="p">,</span> <span class="n">grid_z</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">max_vals</span> <span class="o">-</span> <span class="n">min_vals</span><span class="p">)</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">_grid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">min_vals</span>
+        <span class="p">)</span>
+        <span class="n">grid_points_flat</span> <span class="o">=</span> <span class="n">grid_points</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">average_vectors_flat</span> <span class="o">=</span> <span class="n">average_vectors</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># Calculate centroids of the grid points</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">coarse_factor</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">coarse_factor</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">*</span> <span class="n">coarse_factor</span>
+        <span class="n">MSL_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">))</span>
+        <span class="n">MSL_centroids_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">MSL_centroids</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">MSL_centroids_mm</span> <span class="o">=</span> <span class="n">MSL_centroids_r</span> <span class="o">*</span> <span class="n">spacing</span>
+
+        <span class="k">return</span> <span class="n">average_vectors_flat</span><span class="p">,</span> <span class="n">grid_points_flat</span><span class="p">,</span> <span class="n">MSL_centroids_mm</span>
+
+    <span class="k">def</span> <span class="nf">__ray_tracing_normals__</span><span class="p">(</span>
+        <span class="n">average_vectors_flat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">grid_points_flat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">surfnet_output</span><span class="p">:</span> <span class="n">pv</span><span class="o">.</span><span class="n">PolyData</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function performs ray tracing on the given points and vectors.</span>
+<span class="sd">        For each point, it casts a ray in the direction of the corresponding vector.</span>
+<span class="sd">        If the ray intersects the surface and the intersection is within a maximum distance, the point is moved to the intersection.</span>
+<span class="sd">        If the ray does not intersect the surface or the intersection is too far, a ray is cast in the opposite direction.</span>
+<span class="sd">        If neither ray intersects the surface or the intersections are too far, the point is left where it is.</span>
+<span class="sd">        Finally, it plots the ray traced normals and returns the moved points and their corresponding vectors.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            average_vectors_flat (np.ndarray): The vectors for which to perform ray tracing.</span>
+<span class="sd">            grid_points_flat (np.ndarray): The points at which to perform ray tracing.</span>
+<span class="sd">            surfnet_output (pv.PolyData): The PolyData object representing the surface to intersect.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the moved points and their corresponding vectors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define line segment</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="n">average_vectors_flat</span>
+        <span class="n">moved_grid_points_flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">grid_points_flat</span><span class="p">)</span>
+
+        <span class="n">max_distance</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">//</span> <span class="n">spacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">scaling_factor</span> <span class="o">=</span> <span class="mf">1e2</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">grid_points_flat</span><span class="p">):</span>
+            <span class="c1"># Scale and cast a ray in the direction of the vector</span>
+            <span class="nb">dir</span> <span class="o">=</span> <span class="n">average_vectors_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">dir_vector</span> <span class="o">=</span> <span class="n">point</span> <span class="o">+</span> <span class="n">scaling_factor</span> <span class="o">*</span> <span class="nb">dir</span>
+
+            <span class="n">points</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">surfnet_output</span><span class="o">.</span><span class="n">ray_trace</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">dir_vector</span><span class="p">)</span>
+            <span class="c1"># If the ray intersects the surface and the intersection is within the maximum distance</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">point</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_distance</span>
+            <span class="p">):</span>
+                <span class="n">moved_grid_points_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If the ray does not intersect the surface or the intersection is too far, cast a ray in the opposite direction</span>
+                <span class="n">dir_vector</span> <span class="o">=</span> <span class="n">point</span> <span class="o">-</span> <span class="n">scaling_factor</span> <span class="o">*</span> <span class="n">direction</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">points</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">surfnet_output</span><span class="o">.</span><span class="n">ray_trace</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">dir_vector</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">point</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_distance</span>
+                <span class="p">):</span>
+                    <span class="n">moved_grid_points_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If neither ray intersects the surface or the intersections are too far, leave the point where it is</span>
+                    <span class="n">moved_grid_points_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">point</span>
+
+        <span class="c1"># plot ray traced normals</span>
+        <span class="c1"># p = pv.Plotter()</span>
+        <span class="c1"># p.add_mesh(surfnet_output, color=&quot;tan&quot;, show_edges=False)</span>
+        <span class="c1"># p.add_arrows(moved_grid_points_flat, average_vectors_flat, mag=50)</span>
+        <span class="c1"># p.show_axes()</span>
+        <span class="c1"># p.show()</span>
+        <span class="k">return</span> <span class="n">moved_grid_points_flat</span><span class="p">,</span> <span class="n">average_vectors_flat</span>
+
+    <span class="k">def</span> <span class="nf">__project_onto_plane__</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function projects a vector onto a plane defined by a normal vector.</span>
+<span class="sd">        It first computes the dot product and the norm of the input vectors, and normalizes the normal vector.</span>
+<span class="sd">        Then, it computes the projection of the input vector onto the normal vector and subtracts</span>
+<span class="sd">        this projection from the input vector to obtain the projection onto the plane.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (list): The input vector to be projected onto the plane.</span>
+<span class="sd">            n (list): The normal vector defining the plane.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: The projection of the input vector onto the plane defined by the normal vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">dot_product</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span>
+
+        <span class="k">def</span> <span class="nf">norm</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dot_product</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))]</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="n">dot_product</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="o">*</span> <span class="n">normalize</span><span class="p">(</span><span class="n">n</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n</span><span class="p">))]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))]</span>
+
+    <span class="k">def</span> <span class="nf">__plane_projection__</span><span class="p">(</span><span class="n">average_vectors_flat</span><span class="p">,</span> <span class="n">vertical_vector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function projects a set of vectors onto a plane perpendicular to a given vertical vector.</span>
+<span class="sd">        It first removes any zero vectors from the input set, then for each remaining vector,</span>
+<span class="sd">        it projects it onto the plane defined by the vertical vector.</span>
+<span class="sd">        The function returns the set of projected vectors.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            average_vectors_flat (np.ndarray): The set of vectors to be projected onto the plane.</span>
+<span class="sd">            vertical_vector (np.ndarray): The vector defining the plane onto which the vectors will be projected.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The set of vectors projected onto the plane defined by the vertical vector.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Since we have a grid, some vectors will be [0, 0, 0], hence removing them</span>
+        <span class="n">average_vectors_flat_nonzero</span> <span class="o">=</span> <span class="n">average_vectors_flat</span><span class="p">[</span>
+            <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">average_vectors_flat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">projected_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">average_vectors_flat_nonzero</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">average_vectors_flat_nonzero</span><span class="p">)):</span>
+            <span class="n">projected_vectors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">__project_onto_plane__</span><span class="p">(</span>
+                <span class="n">vertical_vector</span><span class="p">,</span> <span class="n">average_vectors_flat_nonzero</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">projected_vectors</span>
+
+    <span class="n">cort_filled</span> <span class="o">=</span> <span class="n">__fill_mask__</span><span class="p">()</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">cort_filled</span><span class="p">)</span>
+    <span class="n">surfnet_output</span> <span class="o">=</span> <span class="n">surface_nets</span><span class="p">(</span>
+        <span class="n">mesh</span><span class="p">,</span>
+        <span class="n">output_mesh_type</span><span class="o">=</span><span class="s2">&quot;tri&quot;</span><span class="p">,</span>
+        <span class="n">output_style</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+        <span class="n">smoothing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">decimate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">smoothing_num_iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">target_reduction</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">points</span><span class="p">,</span> <span class="n">point_normals_normalized</span> <span class="o">=</span> <span class="n">__get__normals__</span><span class="p">(</span><span class="n">surfnet_output</span><span class="p">)</span>
+    <span class="n">average_vectors_flat</span><span class="p">,</span> <span class="n">grid_points_flat</span><span class="p">,</span> <span class="n">MSL_centroids_mm</span> <span class="o">=</span> <span class="n">__cluster_normals__</span><span class="p">(</span>
+        <span class="n">points</span><span class="p">,</span> <span class="n">point_normals_normalized</span>
+    <span class="p">)</span>
+    <span class="n">moved_grid_points_flat</span><span class="p">,</span> <span class="n">average_vectors_flat</span> <span class="o">=</span> <span class="n">__ray_tracing_normals__</span><span class="p">(</span>
+        <span class="n">average_vectors_flat</span><span class="p">,</span> <span class="n">grid_points_flat</span><span class="p">,</span> <span class="n">surfnet_output</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Since we have a grid, some vectors will be [0, 0, 0], hence removing the same indices from the points</span>
+    <span class="n">moved_grid_points_flat_nonzero</span> <span class="o">=</span> <span class="n">moved_grid_points_flat</span><span class="p">[</span>
+        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">average_vectors_flat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">average_vectors_flat_nonzero</span> <span class="o">=</span> <span class="n">average_vectors_flat</span><span class="p">[</span>
+        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">average_vectors_flat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">MSL_centroids_mm_nonzero</span> <span class="o">=</span> <span class="n">MSL_centroids_mm</span><span class="p">[</span>
+        <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">average_vectors_flat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># plot projected vectors</span>
+    <span class="n">projected_vectors</span> <span class="o">=</span> <span class="n">__plane_projection__</span><span class="p">(</span>
+        <span class="n">average_vectors_flat_nonzero</span><span class="p">,</span> <span class="n">vertical_vector</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">evect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">moved_grid_points_flat_nonzero</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">evect</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">average_vectors_flat_nonzero</span>  <span class="c1"># min</span>
+    <span class="n">evect</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">projected_vectors</span><span class="p">,</span> <span class="n">average_vectors_flat_nonzero</span><span class="p">)</span>  <span class="c1"># mid</span>
+    <span class="n">evect</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">projected_vectors</span>  <span class="c1"># max</span>
+
+    <span class="c1"># p = pv.Plotter()</span>
+    <span class="c1"># p.add_mesh(surfnet_output, color=&quot;tan&quot;, show_edges=False)</span>
+    <span class="c1"># p.add_arrows(moved_grid_points_flat_nonzero, evect[:, 0], mag=30, color=&quot;blue&quot;)</span>
+    <span class="c1"># p.add_arrows(moved_grid_points_flat_nonzero, evect[:, 1], mag=30, color=&quot;green&quot;)</span>
+    <span class="c1"># p.add_arrows(moved_grid_points_flat_nonzero, evect[:, 2], mag=30, color=&quot;red&quot;)</span>
+    <span class="c1"># p.show_axes()</span>
+    <span class="c1"># p.show()</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">moved_grid_points_flat_nonzero</span><span class="p">,</span>
+        <span class="n">evect</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

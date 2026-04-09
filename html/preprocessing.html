@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>preprocessing module &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="postprocessing module" href="postprocessing.html" />
+    <link rel="prev" title="material_mapping module" href="material_mapping.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pipeline_runner.html">pipeline_runner module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aim2fe.html">aim2fe module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="create_loadcases.html">create_loadcases module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simulation.html">simulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="write_abaqus.html">write_abaqus module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hfe_accurate_pipeline.html">hfe_accurate_pipeline module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="material_mapping.html">material_mapping module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">preprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="postprocessing.html">postprocessing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_normals_cortex.html">project_normals_cortex module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="struct_voxel_indices.html">struct_voxel_indices module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="surface_nets.html">surface_nets module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="check_props_recovery.html">check_props_recovery module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="f_decomposition.html">f_decomposition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="imutils.html">imutils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io_utils.html">io_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="odb2vtk_wrapper.html">odb2vtk_wrapper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="print_optim_report.html">print_optim_report module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="read_mech_params.html">read_mech_params module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Getting Started</a></li>
+      <li class="breadcrumb-item active">preprocessing module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/preprocessing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="preprocessing-module">
+<h1>preprocessing module<a class="headerlink" href="#preprocessing-module" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">__assign_to_mask__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COG_temp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trabmask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_cog</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimZ_min_tolerance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/preprocessing.html#__assign_to_mask__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Assigns each point in COG_temp to either trabecular or cortical mask
+based on whether it is inside trabecular mask or not.
+Returns the cog_points and indices for trabecular and cortical masks separately.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>COG_temp</strong> (<em>np.ndarray</em>) – Array of center of gravity points</p></li>
+<li><p><strong>trabmask</strong> (<em>np.ndarray</em>) – Trabecular mask</p></li>
+<li><p><strong>mask_cog</strong> (<em>np.ndarray</em>) – Centers of gravity in x, y, z direction</p></li>
+<li><p><strong>dimZ_min_tolerance</strong> (<em>float</em>) – dimZ - tolerance</p></li>
+<li><p><strong>tolerance</strong> (<em>float</em>) – Tolerance for z-coordinates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>cog_points_trab, indices_trab, cog_points_cort, indices_cort</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">__mask_cogs__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">COG_temp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spacing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/preprocessing.html#__mask_cogs__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Using numpy broadcasting to calculate the mask_cog
+Speed increased by 25x (POS, 2023-07-06)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>COG_temp</strong> (<em>np.ndarray</em>) – Array of center of gravity points</p></li>
+<li><p><strong>Spacing</strong> (<em>np.ndarray</em>) – SCANCO image spacing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Centers of gravity in x, y, z direction</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[np.ndarray, np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">calculate_bvtv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scaling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BMD_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CORTMASK_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRABMASK_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMTYPE</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/preprocessing.html#calculate_bvtv"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Calculates BVTV and mask images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scaling</strong> (<em>float</em>) – Scaling factor for the image.</p></li>
+<li><p><strong>slope</strong> (<em>float</em>) – Slope used in the image.</p></li>
+<li><p><strong>intercept</strong> (<em>float</em>) – Intercept used in the image.</p></li>
+<li><p><strong>BMD_array</strong> (<em>numpy.ndarray</em>) – Array containing BMD values.</p></li>
+<li><p><strong>CORTMASK_array</strong> (<em>numpy.ndarray</em>) – Array containing cortical mask values.</p></li>
+<li><p><strong>TRABMASK_array</strong> (<em>numpy.ndarray</em>) – Array containing trabecular mask values.</p></li>
+<li><p><strong>cfg</strong> (<em>dict</em>) – Configuration object containing image processing settings.</p></li>
+<li><p><strong>IMTYPE</strong> (<em>str</em>) – String defining the type of image (“BMD” or “NATIVE”).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing the following elements:</dt><dd><ul class="simple">
+<li><p>BVTVscaled (numpy.ndarray): Scaled BVTV values.</p></li>
+<li><p>BMDscaled (numpy.ndarray): Scaled BMD values.</p></li>
+<li><p>BVTVraw (numpy.ndarray): Raw BVTV values.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p>This function performs the following operations:
+1. Calculates BVTVraw based on the image type (BMD or NATIVE).
+2. Applies BVTV scaling if specified in the configuration.
+3. Creates a mask by combining cortical and trabecular masks.
+4. Applies the mask to BVTVscaled, BMDscaled, and BVTVraw.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">compute_msl_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/preprocessing.html#compute_msl_spline"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Computes the mean surface length (MSL) for a given bone image and configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bone</strong> (<em>dict</em>) – A dictionary containing bone data, including spacing, segmentation arrays, and masks.</p></li>
+<li><p><strong>cfg</strong> (<em>dict</em>) – A configuration dictionary containing homogenization parameters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated bone dictionary with computed MSL spline values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">fmt_sanity_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/preprocessing.html#fmt_sanity_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">set_summary_variables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bone</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/preprocessing.html#set_summary_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Computes variables for summary file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">preprocessing.</span></span><span class="sig-name descname"><span class="pre">smooth_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MSL</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROI_kernel_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/preprocessing.html#smooth_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Applies a smoothing kernel to a 3D numpy array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>MSL</strong> (<em>np.ndarray</em>) – A 3D numpy array representing the input data.</p></li>
+<li><p><strong>ROI_kernel_size</strong> (<em>int</em>) – The size of the smoothing kernel.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 3D numpy array representing the smoothed data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smoothed_data</span> <span class="o">=</span> <span class="n">smooth_kernel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="material_mapping.html" class="btn btn-neutral float-left" title="material_mapping module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="postprocessing.html" class="btn btn-neutral float-right" title="postprocessing module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>odb2vtk_wrapper &mdash; homogenised-finite-elements 0.9.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/documentation_options.js?v=39bb1c6d"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            homogenised-finite-elements
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html#homogenised-finite-elements-pipeline">Homogenised Finite Elements Pipeline</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">homogenised-finite-elements</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">odb2vtk_wrapper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for odb2vtk_wrapper</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="c1"># flake8: noqa: E501</span>
+
+
+<div class="viewcode-block" id="Odb2VtkWrapper">
+<a class="viewcode-back" href="../odb2vtk_wrapper.html#odb2vtk_wrapper.Odb2VtkWrapper">[docs]</a>
+<span class="k">class</span> <span class="nc">Odb2VtkWrapper</span><span class="p">:</span>
+<div class="viewcode-block" id="Odb2VtkWrapper.__init__">
+<a class="viewcode-back" href="../odb2vtk_wrapper.html#odb2vtk_wrapper.Odb2VtkWrapper.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odb2vtk_path</span><span class="p">,</span> <span class="n">odb_path</span><span class="p">,</span> <span class="n">abq_path</span><span class="p">,</span> <span class="n">only_last_frame</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odb2vtk_path</span> <span class="o">=</span> <span class="n">odb2vtk_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">odb_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vtu_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.vtu&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abq_path</span> <span class="o">=</span> <span class="n">abq_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">only_last_frame</span> <span class="o">=</span> <span class="n">only_last_frame</span></div>
+
+
+<div class="viewcode-block" id="Odb2VtkWrapper.get_json">
+<a class="viewcode-back" href="../odb2vtk_wrapper.html#odb2vtk_wrapper.Odb2VtkWrapper.get_json">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">json2dict</span><span class="p">(</span><span class="n">json_path</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">abq_path</span><span class="si">}</span><span class="s2"> python </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">odb2vtk_path</span><span class="si">}</span><span class="s2"> --header 1 --odbFile </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">json_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;JSON written to </span><span class="si">{</span><span class="n">json_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json2dict</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Odb2VtkWrapper.convert">
+<a class="viewcode-back" href="../odb2vtk_wrapper.html#odb2vtk_wrapper.Odb2VtkWrapper.convert">[docs]</a>
+    <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">json_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">json_dict</span><span class="p">[</span><span class="s2">&quot;instances&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">instance_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+
+        <span class="n">steps</span> <span class="o">=</span> <span class="n">json_dict</span><span class="p">[</span><span class="s2">&quot;steps&quot;</span><span class="p">]</span>
+        <span class="n">stepname</span> <span class="o">=</span> <span class="n">steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">frames</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-frame-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_last_frame</span><span class="p">:</span>
+            <span class="n">frames</span> <span class="o">=</span> <span class="p">[</span><span class="n">frames</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">step_cli</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stepname</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">frames</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">stepname</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">step_cli</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">abq_path</span><span class="si">}</span><span class="s2"> python </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">odb2vtk_path</span><span class="si">}</span><span class="s2"> --header 0 --instance </span><span class="si">{</span><span class="n">instance_str</span><span class="si">}</span><span class="s2"> --step </span><span class="si">{</span><span class="n">step_cli</span><span class="si">}</span><span class="s2"> --odbFile </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">vtu_out_path</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="o">.</span><span class="n">stem</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">odb_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.vtu&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">vtu_out_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="test">
+<a class="viewcode-back" href="../odb2vtk_wrapper.html#odb2vtk_wrapper.test">[docs]</a>
+<span class="k">def</span> <span class="nf">test</span><span class="p">():</span>
+    <span class="c1"># abq_path = &quot;/var/DassaultSystemes/SIMULIA/Commands/abq2021hf6&quot;</span>
+    <span class="n">abq_path</span> <span class="o">=</span> <span class="s2">&quot;/storage/workspaces/artorg_msb/hpc_abaqus/Software/DassaultSystemes/SIMULIA/Commands/abq2024&quot;</span>
+    <span class="c1"># odb2vtkpath = &quot;/home/simoneponcioni/Documents/04_TOOLS/ODB2VTK/python/odb2vtk.py&quot;</span>
+    <span class="n">odb2vtkpath</span> <span class="o">=</span> <span class="s2">&quot;/storage/workspaces/artorg_msb/hpc_abaqus/poncioni/TOOLS/ODB2VTK/python/odb2vtk.py&quot;</span>
+    <span class="n">odb_path</span> <span class="o">=</span> <span class="s2">&quot;/storage/workspaces/artorg_msb/hpc_abaqus/poncioni/HFE/04_SIMULATIONS/REPRO/IMAGES/00000148/C1/T/C0001406_02.odb&quot;</span>
+
+    <span class="n">wrapper</span> <span class="o">=</span> <span class="n">Odb2VtkWrapper</span><span class="p">(</span><span class="n">odb2vtkpath</span><span class="p">,</span> <span class="n">odb_path</span><span class="p">,</span> <span class="n">abq_path</span><span class="p">,</span> <span class="n">only_last_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">vtk_path</span> <span class="o">=</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">convert</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">vtk_path</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">test</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Simone Poncioni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
