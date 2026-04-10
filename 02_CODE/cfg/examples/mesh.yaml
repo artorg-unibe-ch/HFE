@@ -26,7 +26,7 @@ meshing_settings:
   n_elms_longitudinal: 3              # validation: 3
   n_elms_transverse_trab: 13          # validation: 13
   n_elms_transverse_cort: 3           # validation: 3
-  n_elms_radial: 60                   # validation: 15; should be 40 if trab_refinement is True
+  n_elms_radial: 60                   # validation: 60; should be 40 if trab_refinement is True
   ellipsoid_fitting: True
 
   show_plots: False                   # show plots during construction
